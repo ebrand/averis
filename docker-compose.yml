@@ -1,0 +1,400 @@
+services:
+  # =================================================================
+  # TRAEFIK REVERSE PROXY & SERVICE DISCOVERY
+  # =================================================================
+  traefik:
+    image: traefik:v3.0
+    container_name: averis-traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"       # HTTP traffic
+      - "443:443"     # HTTPS traffic  
+      - "8080:8080"   # Traefik Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik:/etc/traefik
+    command:
+      # Enable Docker provider
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      # API and Dashboard
+      - "--api.dashboard=true"
+      - "--api.insecure=true"  # Don't do this in production
+      # Entry points
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # Logging
+      - "--log.level=INFO"
+      - "--accesslog=true"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+    networks:
+      - averis-network
+      - database_commerce-network
+
+  # =================================================================
+  # DATABASE LAYER (using existing commerce-postgres container)
+  # =================================================================
+  # Note: We're using the existing commerce-postgres container
+  # The services will connect to postgres:5432 within the Docker network
+
+  # =================================================================
+  # MESSAGE QUEUE
+  # =================================================================
+  nats:
+    image: nats:latest
+    container_name: averis-nats
+    restart: unless-stopped
+    command: 
+      - "--jetstream"
+      - "--store_dir=/data"
+      - "--http_port=8222"
+    volumes:
+      - nats_data:/data
+    ports:
+      - "4222:4222"
+      - "8222:8222"  # NATS monitoring
+    # Health check removed - NATS container doesn't have nc or wget
+    # Service will be ready when port 4222 is accessible
+    networks:
+      - averis-network
+      - database_commerce-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nats-monitor.rule=Host(`nats.localhost`)"
+      - "traefik.http.routers.nats-monitor.service=nats-monitor"
+      - "traefik.http.services.nats-monitor.loadbalancer.server.port=8222"
+
+  # =================================================================
+  # CORE APIS
+  # =================================================================
+  product-api:
+    build:
+      context: ./dotnet-services
+      dockerfile: src/Commerce.Services.ProductMdm.Api/Dockerfile
+    container_name: averis-product-api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:6001
+      - ConnectionStrings__DefaultConnection=Host=commerce-postgres;Port=5432;Database=commerce_db;Username=${DB_USERNAME:-postgres};Password=${DB_PASSWORD:-postgres};Include Error Detail=true
+      - NATS__Host=nats
+      - NATS__Port=4222
+    depends_on:
+      - nats
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:6001/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    networks:
+      - averis-network
+      - database_commerce-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.product-api.rule=Host(`api.localhost`) && PathPrefix(`/product`)"
+      - "traefik.http.routers.product-api.service=product-api"
+      - "traefik.http.services.product-api.loadbalancer.server.port=6001"
+      - "traefik.http.middlewares.product-strip.stripprefix.prefixes=/product"
+      - "traefik.http.routers.product-api.middlewares=product-strip"
+
+  product-staging-api:
+    build:
+      context: ./dotnet-services
+      dockerfile: src/Commerce.Services.ProductStaging.Api/Dockerfile
+    container_name: averis-product-staging-api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:6002
+      - ConnectionStrings__DefaultConnection=Host=commerce-postgres;Port=5432;Database=commerce_db;Username=${DB_USERNAME:-postgres};Password=${DB_PASSWORD:-postgres};Include Error Detail=true
+    # No database dependency - using existing commerce-postgres container
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:6002/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    networks:
+      - averis-network
+      - database_commerce-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.product-staging-api.rule=Host(`api.localhost`) && PathPrefix(`/product-staging`)"
+      - "traefik.http.routers.product-staging-api.service=product-staging-api"
+      - "traefik.http.services.product-staging-api.loadbalancer.server.port=6002"
+      - "traefik.http.middlewares.product-staging-strip.stripprefix.prefixes=/product-staging"
+      - "traefik.http.routers.product-staging-api.middlewares=product-staging-strip"
+
+  customer-api:
+    build:
+      context: ./dotnet-services
+      dockerfile: src/Commerce.Services.CustomerMdm.Api/Dockerfile
+    container_name: averis-customer-api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:6007
+      - ConnectionStrings__DefaultConnection=Host=commerce-postgres;Port=5432;Database=commerce_db;Username=${DB_USERNAME:-postgres};Password=${DB_PASSWORD:-postgres};Include Error Detail=true
+    # No database dependency - using existing commerce-postgres container
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:6007/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    networks:
+      - averis-network
+      - database_commerce-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.customer-api.rule=Host(`api.localhost`) && PathPrefix(`/customer`)"
+      - "traefik.http.routers.customer-api.service=customer-api"
+      - "traefik.http.services.customer-api.loadbalancer.server.port=6007"
+      - "traefik.http.middlewares.customer-strip.stripprefix.prefixes=/customer"
+      - "traefik.http.routers.customer-api.middlewares=customer-strip"
+
+  system-api:
+    build:
+      context: ./dotnet-services
+      dockerfile: src/Commerce.Services.SystemApi.Api/Dockerfile
+    container_name: averis-system-api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:6012
+      - ConnectionStrings__DefaultConnection=Host=commerce-postgres;Port=5432;Database=commerce_db;Username=${DB_USERNAME:-postgres};Password=${DB_PASSWORD:-postgres};Include Error Detail=true
+    depends_on:
+      - nats
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:6012/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    networks:
+      - averis-network
+      - database_commerce-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.system-api.rule=Host(`api.localhost`) && PathPrefix(`/system`)"
+      - "traefik.http.routers.system-api.service=system-api"
+      - "traefik.http.services.system-api.loadbalancer.server.port=6012"
+      - "traefik.http.middlewares.system-strip.stripprefix.prefixes=/system"
+      - "traefik.http.routers.system-api.middlewares=system-strip"
+
+  pricing-api:
+    build:
+      context: ./dotnet-services
+      dockerfile: src/Commerce.Services.PricingMdm.Api/Dockerfile
+    container_name: averis-pricing-api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:6003
+      - ConnectionStrings__DefaultConnection=Host=commerce-postgres;Port=5432;Database=commerce_db;Username=${DB_USERNAME:-postgres};Password=${DB_PASSWORD:-postgres};Include Error Detail=true
+      - LocalizationApiUrl=http://localization-api:6010/api/localization
+      - ProductStagingApiUrl=http://averis-product-staging-api:6002
+    networks:
+      - averis-network
+      - database_commerce-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pricing-api.rule=Host(`api.localhost`) && PathPrefix(`/pricing`)"
+      - "traefik.http.routers.pricing-api.service=pricing-api"
+      - "traefik.http.services.pricing-api.loadbalancer.server.port=6003"
+      - "traefik.http.middlewares.pricing-strip.stripprefix.prefixes=/pricing"
+      - "traefik.http.routers.pricing-api.middlewares=pricing-strip"
+
+  ecommerce-api:
+    build:
+      context: ./dotnet-services
+      dockerfile: src/Commerce.Services.Ecommerce.Api/Dockerfile
+    container_name: averis-ecommerce-api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:6004
+      - ConnectionStrings__DefaultConnection=Host=commerce-postgres;Port=5432;Database=commerce_db;Username=${DB_USERNAME:-postgres};Password=${DB_PASSWORD:-postgres};Include Error Detail=true
+    networks:
+      - averis-network
+      - database_commerce-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ecommerce-api.rule=Host(`api.localhost`) && PathPrefix(`/ecommerce`)"
+      - "traefik.http.routers.ecommerce-api.service=ecommerce-api"
+      - "traefik.http.services.ecommerce-api.loadbalancer.server.port=6004"
+      - "traefik.http.middlewares.ecommerce-strip.stripprefix.prefixes=/ecommerce"
+      - "traefik.http.routers.ecommerce-api.middlewares=ecommerce-strip"
+
+  oms-api:
+    build:
+      context: ./dotnet-services
+      dockerfile: src/Commerce.Services.Oms.Api/Dockerfile
+    container_name: averis-oms-api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:6005
+      - ConnectionStrings__DefaultConnection=Host=commerce-postgres;Port=5432;Database=commerce_db;Username=${DB_USERNAME:-postgres};Password=${DB_PASSWORD:-postgres};Include Error Detail=true
+    networks:
+      - averis-network
+      - database_commerce-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.oms-api.rule=Host(`api.localhost`) && PathPrefix(`/oms`)"
+      - "traefik.http.routers.oms-api.service=oms-api"
+      - "traefik.http.services.oms-api.loadbalancer.server.port=6005"
+      - "traefik.http.middlewares.oms-strip.stripprefix.prefixes=/oms"
+      - "traefik.http.routers.oms-api.middlewares=oms-strip"
+
+  erp-api:
+    build:
+      context: ./dotnet-services
+      dockerfile: src/Commerce.Services.Erp.Api/Dockerfile
+    container_name: averis-erp-api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:6006
+      - ConnectionStrings__DefaultConnection=Host=commerce-postgres;Port=5432;Database=commerce_db;Username=${DB_USERNAME:-postgres};Password=${DB_PASSWORD:-postgres};Include Error Detail=true
+    networks:
+      - averis-network
+      - database_commerce-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.erp-api.rule=Host(`api.localhost`) && PathPrefix(`/erp`)"
+      - "traefik.http.routers.erp-api.service=erp-api"
+      - "traefik.http.services.erp-api.loadbalancer.server.port=6006"
+      - "traefik.http.middlewares.erp-strip.stripprefix.prefixes=/erp"
+      - "traefik.http.routers.erp-api.middlewares=erp-strip"
+
+  customer-staging-api:
+    build:
+      context: ./dotnet-services
+      dockerfile: src/Commerce.Services.CustomerStaging.Api/Dockerfile
+    container_name: averis-customer-staging-api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:6008
+      - ConnectionStrings__DefaultConnection=Host=commerce-postgres;Port=5432;Database=commerce_db;Username=${DB_USERNAME:-postgres};Password=${DB_PASSWORD:-postgres};Include Error Detail=true
+    networks:
+      - averis-network
+      - database_commerce-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.customer-staging-api.rule=Host(`api.localhost`) && PathPrefix(`/customer-staging`)"
+      - "traefik.http.routers.customer-staging-api.service=customer-staging-api"
+      - "traefik.http.services.customer-staging-api.loadbalancer.server.port=6008"
+      - "traefik.http.middlewares.customer-staging-strip.stripprefix.prefixes=/customer-staging"
+      - "traefik.http.routers.customer-staging-api.middlewares=customer-staging-strip"
+
+  localization-api:
+    build:
+      context: ./dotnet-services
+      dockerfile: src/Commerce.Services.Localization.Api/Dockerfile
+    container_name: averis-localization-api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:6010
+      - ConnectionStrings__DefaultConnection=Host=commerce-postgres;Port=5432;Database=commerce_db;Username=${DB_USERNAME:-postgres};Password=${DB_PASSWORD:-postgres};Include Error Detail=true
+      - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY}
+      - PricingApiUrl=http://pricing-api:6003
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6010/api/localization/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - averis-network
+      - database_commerce-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.localization-api.rule=Host(`api.localhost`) && PathPrefix(`/localization`)"
+      - "traefik.http.routers.localization-api.service=localization-api"
+      - "traefik.http.services.localization-api.loadbalancer.server.port=6010"
+      - "traefik.http.middlewares.localization-strip.stripprefix.prefixes=/localization"
+      - "traefik.http.routers.localization-api.middlewares=localization-strip"
+      # SignalR Hub routing (maps /localization/progressHub to /progressHub)
+      - "traefik.http.routers.localization-signalr.rule=Host(`api.localhost`) && PathPrefix(`/localization/progressHub`)"
+      - "traefik.http.routers.localization-signalr.service=localization-api"
+      - "traefik.http.middlewares.localization-signalr-strip.stripprefix.prefixes=/localization"
+      - "traefik.http.routers.localization-signalr.middlewares=localization-signalr-strip"
+      - "traefik.http.routers.localization-signalr.priority=100"
+
+  # =================================================================
+  # INGEST SERVICES
+  # =================================================================
+  product-staging-ingest:
+    build:
+      context: ./product-staging/ingest
+      dockerfile: Dockerfile
+    container_name: averis-product-staging-ingest
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - PORT=9002
+      - DB_HOST=commerce-postgres
+      - DB_PORT=5432
+      - DB_NAME=commerce_db
+      - DB_SCHEMA=averis_product_staging
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - NATS_HOST=nats
+      - NATS_PORT=4222
+      - STREAM_NAME=PRODUCT_EVENTS
+      - CONSUMER_NAME=product-staging-consumer
+    depends_on:
+      - nats
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:9002/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    networks:
+      - averis-network
+      - database_commerce-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.product-staging-ingest.rule=Host(`ingest.localhost`) && PathPrefix(`/product-staging`)"
+      - "traefik.http.routers.product-staging-ingest.service=product-staging-ingest"
+      - "traefik.http.services.product-staging-ingest.loadbalancer.server.port=9002"
+
+  # =================================================================
+  # USER INTERFACES
+  # =================================================================
+  product-ui:
+    build:
+      context: ./product-mdm/ui
+      dockerfile: Dockerfile.dev
+    container_name: averis-product-ui
+    restart: unless-stopped
+    environment:
+      - VITE_PRODUCT_API_BASE_URL=http://api.localhost/product/api
+      - VITE_USER_API_BASE_URL=http://api.localhost/customer/api
+    volumes:
+      - ./product-mdm/ui:/app
+      - /app/node_modules
+    networks:
+      - averis-network
+      - database_commerce-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.product-ui.rule=Host(`product.localhost`)"
+      - "traefik.http.routers.product-ui.service=product-ui"
+      - "traefik.http.services.product-ui.loadbalancer.server.port=3000"
+
+volumes:
+  nats_data:
+    driver: local
+
+networks:
+  averis-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+  # External network for existing database
+  database_commerce-network:
+    external: true

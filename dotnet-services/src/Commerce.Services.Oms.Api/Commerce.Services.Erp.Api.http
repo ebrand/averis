@@ -1,0 +1,6 @@
+@Commerce.Services.Erp.Api_HostAddress = http://localhost:5157
+
+GET {{Commerce.Services.Erp.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

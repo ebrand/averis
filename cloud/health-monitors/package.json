@@ -1,0 +1,24 @@
+{
+  "name": "infrastructure-health-monitors",
+  "version": "1.0.0",
+  "description": "Health check services for NATS and PostgreSQL infrastructure components",
+  "main": "index.js",
+  "scripts": {
+    "start": "node nats-health.js & node postgres-health.js",
+    "nats": "node nats-health.js",
+    "postgres": "node postgres-health.js",
+    "dev": "concurrently \"npm run nats\" \"npm run postgres\""
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "nats": "^2.19.0",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": ["health-check", "nats", "postgresql", "infrastructure", "monitoring"],
+  "author": "Averis Commerce Platform",
+  "license": "MIT"
+}

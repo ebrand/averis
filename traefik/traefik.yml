@@ -1,0 +1,77 @@
+# Traefik v3.0 Configuration
+# Dynamic configuration for the Averis Platform
+
+# Global configuration
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+# Entry points definition
+entryPoints:
+  web:
+    address: ":80"
+    # Redirect HTTP to HTTPS (uncomment for production)
+    # http:
+    #   redirections:
+    #     entryPoint:
+    #       to: websecure
+    #       scheme: https
+  websecure:
+    address: ":443"
+  # Management ports
+  nats-monitoring:
+    address: ":8222"
+
+# Certificate resolvers (for production HTTPS)
+# certificatesResolvers:
+#   letsencrypt:
+#     acme:
+#       email: admin@averis.local
+#       storage: /etc/traefik/acme.json
+#       httpChallenge:
+#         entryPoint: web
+
+# Provider configuration
+providers:
+  docker:
+    exposedByDefault: false
+    endpoint: "unix:///var/run/docker.sock"
+    watch: true
+    network: "averis-network"
+  file:
+    filename: /etc/traefik/dynamic.yml
+    watch: true
+
+# API and Dashboard
+api:
+  dashboard: true
+  insecure: true  # Only for development - disable in production
+
+# Logging
+log:
+  level: INFO
+  format: json
+
+# Access logs
+accessLog:
+  format: json
+  fields:
+    defaultMode: keep
+    names:
+      ClientUsername: drop
+    headers:
+      defaultMode: keep
+      names:
+        User-Agent: keep
+        Authorization: drop
+        Content-Type: keep
+
+# Metrics (optional - for monitoring)
+# metrics:
+#   prometheus:
+#     addEntryPointsLabels: true
+#     addServicesLabels: true
+
+# Health check
+ping:
+  entryPoint: "web"

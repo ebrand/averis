@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tree Management API Test - Averis Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tree-node {
+            padding-left: 24px;
+            border-left: 2px solid #e5e7eb;
+            margin-left: 12px;
+        }
+        .tree-node:hover {
+            background-color: #f9fafb;
+        }
+        .compliance-high { color: #ef4444; }
+        .compliance-medium { color: #f59e0b; }
+        .compliance-low { color: #22c55e; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-sm border mb-6 p-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                🌍 Tree Management API Test Suite
+            </h1>
+            <p class="text-gray-600">
+                Testing the hierarchical Region → Country → Locale tree management system
+            </p>
+            
+            <!-- Status Indicators -->
+            <div class="flex items-center gap-4 mt-4">
+                <div id="api-status" class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
+                    🔄 Checking API Status...
+                </div>
+                <div id="db-status" class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
+                    📊 Checking Database...
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <button onclick="loadHierarchy()" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200">
+                🏗️ Load Full Hierarchy
+            </button>
+            <button onclick="testIpDetection()" class="bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200">
+                🌐 Test IP Detection
+            </button>
+            <button onclick="setupTestSession()" class="bg-purple-500 hover:bg-purple-600 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200">
+                👤 Setup Test Session
+            </button>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Tree Hierarchy Panel -->
+            <div class="bg-white rounded-lg shadow-sm border">
+                <div class="p-4 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-900">🌳 Hierarchy Tree</h2>
+                    <p class="text-sm text-gray-600 mt-1">Interactive tree with compliance indicators</p>
+                </div>
+                <div class="p-4">
+                    <div id="tree-container" class="max-h-96 overflow-y-auto">
+                        <div class="text-center text-gray-500 py-8">
+                            Click "Load Full Hierarchy" to display the tree
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Test Results Panel -->
+            <div class="bg-white rounded-lg shadow-sm border">
+                <div class="p-4 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-900">🧪 API Test Results</h2>
+                    <p class="text-sm text-gray-600 mt-1">Real-time API response monitoring</p>
+                </div>
+                <div class="p-4">
+                    <div id="api-results" class="max-h-96 overflow-y-auto font-mono text-sm bg-gray-50 p-4 rounded border">
+                        <div class="text-gray-500">API results will appear here...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Node Details Panel -->
+        <div class="bg-white rounded-lg shadow-sm border mt-6" id="node-details-panel" style="display: none;">
+            <div class="p-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">📋 Node Details</h2>
+                <p class="text-sm text-gray-600 mt-1">Detailed information about selected tree node</p>
+            </div>
+            <div class="p-4">
+                <div id="node-details-content">
+                    <!-- Node details will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Operations Panel -->
+        <div class="bg-white rounded-lg shadow-sm border mt-6">
+            <div class="p-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">⚡ Bulk Operations</h2>
+                <p class="text-sm text-gray-600 mt-1">Test bulk activation, deactivation, and export operations</p>
+            </div>
+            <div class="p-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button onclick="testBulkActivation()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-2 px-3 rounded transition-colors duration-200">
+                        ✅ Bulk Activate
+                    </button>
+                    <button onclick="testBulkDeactivation()" class="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-3 rounded transition-colors duration-200">
+                        ❌ Bulk Deactivate
+                    </button>
+                    <button onclick="testBulkDelete()" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-3 rounded transition-colors duration-200">
+                        🗑️ Bulk Delete
+                    </button>
+                    <button onclick="testBulkExport()" class="bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-3 rounded transition-colors duration-200">
+                        📤 Bulk Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:6003/api';
+        let currentTreeData = null;
+        let selectedNodes = [];
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkApiStatus();
+            await loadHierarchy();
+        });
+
+        // Check API connectivity
+        async function checkApiStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/tree`, { 
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    updateStatus('api-status', '✅ API Connected', 'bg-green-100 text-green-800');
+                    updateStatus('db-status', '✅ Database Active', 'bg-green-100 text-green-800');
+                } else {
+                    throw new Error(`API returned ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus('api-status', '❌ API Offline', 'bg-red-100 text-red-800');
+                updateStatus('db-status', '❌ Database Offline', 'bg-red-100 text-red-800');
+                logApiResult('API Status Check Failed', { error: error.message });
+            }
+        }
+
+        // Load the full hierarchy tree
+        async function loadHierarchy() {
+            try {
+                logApiResult('Loading Hierarchy', 'Fetching complete tree structure...');
+                
+                const response = await fetch(`${API_BASE}/tree?includeCompliance=true&includeInactive=false`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const treeData = await response.json();
+                currentTreeData = treeData;
+                
+                logApiResult('Hierarchy Loaded Successfully', {
+                    regionsCount: treeData.length,
+                    totalCountries: treeData.reduce((sum, region) => sum + region.children.length, 0),
+                    totalLocales: treeData.reduce((sum, region) => 
+                        sum + region.children.reduce((cSum, country) => cSum + country.children.length, 0), 0
+                    )
+                });
+                
+                renderTree(treeData);
+                
+            } catch (error) {
+                logApiResult('Hierarchy Load Failed', { error: error.message });
+            }
+        }
+
+        // Render the tree structure
+        function renderTree(treeData) {
+            const container = document.getElementById('tree-container');
+            container.innerHTML = '';
+            
+            treeData.forEach(region => {
+                const regionElement = createTreeNode(region, 0);
+                container.appendChild(regionElement);
+            });
+        }
+
+        // Create a tree node element
+        function createTreeNode(node, depth) {
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'tree-node py-2 cursor-pointer';
+            nodeDiv.style.paddingLeft = `${depth * 24 + 12}px`;
+            
+            // Determine node styling based on type and compliance
+            let iconColor = '#6b7280'; // gray-500
+            let bgColor = 'hover:bg-gray-50';
+            
+            if (node.type === 'country' && node.metadata?.complianceRisk) {
+                switch (node.metadata.complianceRisk.toLowerCase()) {
+                    case 'high': iconColor = '#ef4444'; break;
+                    case 'medium': iconColor = '#f59e0b'; break;
+                    case 'low': iconColor = '#22c55e'; break;
+                }
+            }
+            
+            const complianceIndicator = node.metadata?.complianceRisk ? 
+                `<span class="ml-2 text-xs px-2 py-1 rounded-full bg-gray-100 compliance-${node.metadata.complianceRisk.toLowerCase()}">${node.metadata.complianceRisk}</span>` : '';
+            
+            const statusIndicator = node.metadata?.status === 'Inactive' ? 
+                '<span class="ml-2 text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">Inactive</span>' : '';
+            
+            nodeDiv.innerHTML = `
+                <div class="flex items-center justify-between group">
+                    <div class="flex items-center">
+                        <span class="text-lg mr-2" style="color: ${iconColor}">${node.icon}</span>
+                        <span class="font-medium text-gray-900">${node.name}</span>
+                        ${complianceIndicator}
+                        ${statusIndicator}
+                        ${node.metadata?.itemCount > 0 ? 
+                            `<span class="ml-2 text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">${node.metadata.itemCount}</span>` : ''
+                        }
+                    </div>
+                    <button 
+                        onclick="getNodeDetails('${node.id}')" 
+                        class="opacity-0 group-hover:opacity-100 text-blue-500 hover:text-blue-700 transition-opacity text-sm"
+                    >
+                        📋 Details
+                    </button>
+                </div>
+            `;
+            
+            // Add click handler for node selection
+            nodeDiv.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleNodeSelection(node.id, nodeDiv);
+            });
+            
+            // Add children
+            if (node.children && node.children.length > 0) {
+                const childrenContainer = document.createElement('div');
+                childrenContainer.className = 'ml-4';
+                
+                node.children.forEach(child => {
+                    const childElement = createTreeNode(child, depth + 1);
+                    childrenContainer.appendChild(childElement);
+                });
+                
+                nodeDiv.appendChild(childrenContainer);
+            }
+            
+            return nodeDiv;
+        }
+
+        // Toggle node selection for bulk operations
+        function toggleNodeSelection(nodeId, nodeElement) {
+            if (selectedNodes.includes(nodeId)) {
+                selectedNodes = selectedNodes.filter(id => id !== nodeId);
+                nodeElement.classList.remove('bg-blue-100', 'border-blue-300');
+            } else {
+                selectedNodes.push(nodeId);
+                nodeElement.classList.add('bg-blue-100', 'border-blue-300');
+            }
+            
+            logApiResult('Node Selection Updated', { 
+                selectedCount: selectedNodes.length,
+                selectedNodes: selectedNodes 
+            });
+        }
+
+        // Get detailed information about a node
+        async function getNodeDetails(nodeId) {
+            try {
+                logApiResult('Fetching Node Details', `Getting details for ${nodeId}...`);
+                
+                const response = await fetch(`${API_BASE}/tree/node/${nodeId}`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const nodeDetails = await response.json();
+                displayNodeDetails(nodeDetails);
+                logApiResult('Node Details Retrieved', nodeDetails);
+                
+            } catch (error) {
+                logApiResult('Node Details Failed', { error: error.message });
+            }
+        }
+
+        // Display node details in the panel
+        function displayNodeDetails(nodeDetails) {
+            const panel = document.getElementById('node-details-panel');
+            const content = document.getElementById('node-details-content');
+            
+            content.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <h3 class="font-semibold text-gray-900 mb-2">Basic Information</h3>
+                        <div class="space-y-2 text-sm">
+                            <div><span class="font-medium">ID:</span> ${nodeDetails.id}</div>
+                            <div><span class="font-medium">Type:</span> <span class="capitalize">${nodeDetails.type}</span></div>
+                            <div><span class="font-medium">Name:</span> ${nodeDetails.name}</div>
+                            <div><span class="font-medium">Code:</span> ${nodeDetails.code}</div>
+                            <div><span class="font-medium">Status:</span> 
+                                <span class="px-2 py-1 rounded-full text-xs ${nodeDetails.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${nodeDetails.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                            </div>
+                            ${nodeDetails.description ? `<div><span class="font-medium">Description:</span> ${nodeDetails.description}</div>` : ''}
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900 mb-2">Properties</h3>
+                        <div class="space-y-1 text-sm max-h-40 overflow-y-auto">
+                            ${Object.entries(nodeDetails.properties || {}).map(([key, value]) => 
+                                `<div><span class="font-medium">${key}:</span> ${JSON.stringify(value)}</div>`
+                            ).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            panel.style.display = 'block';
+            panel.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Test IP-based country detection
+        async function testIpDetection() {
+            const testIps = ['8.8.8.8', '1.1.1.1', '192.168.1.1', '127.0.0.1'];
+            
+            for (const ip of testIps) {
+                try {
+                    logApiResult('Testing IP Detection', `Testing IP: ${ip}`);
+                    
+                    const response = await fetch(`${API_BASE}/tree/detect-from-ip?ipAddress=${ip}`, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const detection = await response.json();
+                    logApiResult(`IP Detection Result (${ip})`, detection);
+                    
+                } catch (error) {
+                    logApiResult(`IP Detection Failed (${ip})`, { error: error.message });
+                }
+            }
+        }
+
+        // Setup a test user session
+        async function setupTestSession() {
+            try {
+                logApiResult('Setting Up Test Session', 'Creating test user session...');
+                
+                const sessionRequest = {
+                    userId: `test-user-${Date.now()}`,
+                    sessionId: `session-${Date.now()}`,
+                    ipAddress: '8.8.8.8',
+                    userAgent: navigator.userAgent,
+                    referrer: window.location.href
+                };
+                
+                const response = await fetch(`${API_BASE}/tree/setup-session`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(sessionRequest)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const sessionResult = await response.json();
+                logApiResult('Test Session Created', sessionResult);
+                
+            } catch (error) {
+                logApiResult('Session Setup Failed', { error: error.message });
+            }
+        }
+
+        // Test bulk activation
+        async function testBulkActivation() {
+            if (selectedNodes.length === 0) {
+                alert('Please select some nodes first by clicking on them in the tree.');
+                return;
+            }
+            
+            await performBulkOperation('activate', selectedNodes);
+        }
+
+        // Test bulk deactivation
+        async function testBulkDeactivation() {
+            if (selectedNodes.length === 0) {
+                alert('Please select some nodes first by clicking on them in the tree.');
+                return;
+            }
+            
+            await performBulkOperation('deactivate', selectedNodes);
+        }
+
+        // Test bulk delete
+        async function testBulkDelete() {
+            if (selectedNodes.length === 0) {
+                alert('Please select some nodes first by clicking on them in the tree.');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete ${selectedNodes.length} selected nodes?`)) {
+                return;
+            }
+            
+            await performBulkOperation('delete', selectedNodes);
+        }
+
+        // Test bulk export
+        async function testBulkExport() {
+            if (selectedNodes.length === 0) {
+                alert('Please select some nodes first by clicking on them in the tree.');
+                return;
+            }
+            
+            await performBulkOperation('export', selectedNodes);
+        }
+
+        // Perform bulk operation
+        async function performBulkOperation(operation, nodeIds) {
+            try {
+                logApiResult(`Bulk ${operation.toUpperCase()}`, `Processing ${nodeIds.length} nodes...`);
+                
+                const bulkRequest = {
+                    operation: operation,
+                    nodeIds: nodeIds
+                };
+                
+                const response = await fetch(`${API_BASE}/tree/bulk-operations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(bulkRequest)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                logApiResult(`Bulk ${operation.toUpperCase()} Completed`, result);
+                
+                // Clear selections and reload tree if successful
+                if (result.successfulNodes.length > 0) {
+                    selectedNodes = [];
+                    await loadHierarchy(); // Reload to see changes
+                }
+                
+            } catch (error) {
+                logApiResult(`Bulk ${operation.toUpperCase()} Failed`, { error: error.message });
+            }
+        }
+
+        // Update status indicator
+        function updateStatus(elementId, text, className) {
+            const element = document.getElementById(elementId);
+            element.textContent = text;
+            element.className = `px-3 py-1 rounded-full text-sm font-medium ${className}`;
+        }
+
+        // Log API results
+        function logApiResult(title, data) {
+            const resultsContainer = document.getElementById('api-results');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'mb-3 p-3 border-l-4 border-blue-400 bg-blue-50';
+            
+            logEntry.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-semibold text-blue-800">${title}</span>
+                    <span class="text-xs text-blue-600">${timestamp}</span>
+                </div>
+                <div class="mt-1 text-sm text-gray-700">
+                    <pre class="whitespace-pre-wrap">${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+            
+            resultsContainer.insertBefore(logEntry, resultsContainer.firstChild);
+            
+            // Keep only the last 10 entries
+            while (resultsContainer.children.length > 10) {
+                resultsContainer.removeChild(resultsContainer.lastChild);
+            }
+        }
+    </script>
+</body>
+</html>

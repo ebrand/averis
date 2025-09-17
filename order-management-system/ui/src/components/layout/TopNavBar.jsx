@@ -1,0 +1,302 @@
+import React, { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
+import { useTheme } from '../../contexts/ThemeContext'
+import { stytch } from '../../lib/stytch'
+import RoleSwitcher from '../common/RoleSwitcher'
+// import { handleDashboardNavigation } from '../../utils/crossAppNavigation' // Removed dashboard navigation
+import {
+  Bars3Icon,
+  UserCircleIcon,
+  ChevronDownIcon,
+  ArrowRightOnRectangleIcon,
+  UserIcon,
+  Cog6ToothIcon,
+  DocumentTextIcon,
+  BuildingOfficeIcon,
+  ClipboardDocumentListIcon,
+  SunIcon,
+  MoonIcon,
+  HomeIcon
+} from '@heroicons/react/24/outline'
+
+export const TopNavBar = ({ onMenuToggle, isSidebarOpen }) => {
+  const { user, userProfile, logout, isAuthenticated } = useAuth()
+  const { toggleTheme, isDark } = useTheme()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false)
+  const [isSigningIn, setIsSigningIn] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const profileMenuRef = useRef(null)
+
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if click is inside the profile button
+      if (profileMenuRef.current && profileMenuRef.current.contains(event.target)) {
+        return
+      }
+      
+      // Check if click is inside the dropdown menu (which is portaled to document.body)
+      const dropdownElement = document.querySelector('[data-dropdown-menu="profile"]')
+      if (dropdownElement && dropdownElement.contains(event.target)) {
+        return
+      }
+      
+      setIsProfileMenuOpen(false)
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      // Navigate to products page with search query
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`)
+    } else if (location.pathname !== '/products') {
+      // If no search query, just go to products page
+      navigate('/products')
+    }
+  }
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value)
+  }
+
+  const handleLogout = async () => {
+    console.log('TopNavBar: handleLogout called')
+    try {
+      await logout()
+      setIsProfileMenuOpen(false)
+      console.log('TopNavBar: logout completed successfully')
+    } catch (error) {
+      console.error('TopNavBar: logout failed with error:', error)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsSigningIn(true)
+      
+      // Use Stytch's proper OAuth flow with PKCE
+      const redirectURL = `${window.location.origin}/authenticate`
+      
+      await stytch.oauth.google.start({
+        login_redirect_url: redirectURL,
+        signup_redirect_url: redirectURL
+      })
+    } catch (error) {
+      console.error('Sign in error:', error)
+      setIsSigningIn(false)
+    }
+  }
+
+  return (
+    <nav className="bg-purple-800 shadow-sm border-b border-purple-900 fixed top-0 left-0 right-0 z-50">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          
+          {/* Left side - Logo and menu toggle */}
+          <div className="flex items-center w-80 flex-shrink-0">
+            <button
+              onClick={onMenuToggle}
+              className="p-2 rounded-md text-white hover:text-purple-200 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-600 lg:hidden"
+            >
+              <span className="sr-only">Toggle sidebar</span>
+              <Bars3Icon className="h-6 w-6" />
+            </button>
+            
+            <div className="flex items-center ml-4 lg:ml-0">
+              <ClipboardDocumentListIcon className="h-8 w-8 text-white" />
+              <div className="ml-3">
+                <h1 className="text-lg font-semibold text-white">Averis OMS</h1>
+                <p className="text-xs text-purple-200 hidden sm:block">Order & Fulfillment Management</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Center - Search bar (expandable) */}
+          <div className="hidden md:flex w-96 mx-8">
+            <form onSubmit={handleSearchSubmit} className="w-full">
+              <label htmlFor="search" className="sr-only">Search products</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-purple-300" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <input
+                  id="search"
+                  name="search"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  className="block w-full pl-10 pr-3 py-2 border border-purple-600 rounded-md leading-5 bg-purple-700 placeholder-purple-300 text-white focus:outline-none focus:placeholder-purple-200 focus:ring-1 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                  placeholder="Search products, SKUs, categories..."
+                  type="search"
+                />
+              </div>
+            </form>
+          </div>
+
+          {/* Right side - Theme toggle, Role switcher and User menu */}
+          <div className="flex items-center space-x-4">
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg text-white hover:text-purple-200 hover:bg-purple-700 transition-colors"
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {isDark ? (
+                <SunIcon className="h-5 w-5" />
+              ) : (
+                <MoonIcon className="h-5 w-5" />
+              )}
+            </button>
+
+            {isAuthenticated && (
+              <RoleSwitcher 
+                forceClose={isProfileMenuOpen}
+                onStateChange={setRoleSwitcherOpen}
+              />
+            )}
+            
+            {isAuthenticated && userProfile ? (
+              <div className="relative" ref={profileMenuRef}>
+                <button
+                  onClick={() => {
+                    console.log('TopNavBar: Profile button clicked')
+                    setIsProfileMenuOpen(!isProfileMenuOpen)
+                  }}
+                  className="flex items-center space-x-3 px-3 py-2 w-[250px] bg-purple-700 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-600 focus:ring-offset-purple-800 hover:bg-purple-600"
+                >
+                  <span className="sr-only">Open user menu</span>
+                    {userProfile.avatar ? (
+                      <img
+                        className="h-8 w-8 rounded-full"
+                        src={userProfile.avatar}
+                        alt={userProfile.name}
+                      />
+                    ) : (
+                      <UserCircleIcon className="h-8 w-8 text-white" />
+                    )}
+                  <div className="hidden md:block text-left">
+                    <div className="text-sm font-medium text-white">
+                      {userProfile.name}
+                    </div>
+                    <div className="text-xs text-purple-200">
+                      {userProfile.email.length > 22 ? `${userProfile.email.substring(0, 19)}...` : userProfile.email}
+                    </div>
+                  </div>
+                  <ChevronDownIcon className="h-4 w-4 text-white" />
+                </button>
+
+
+                {/* Invisible overlay TEMPORARILY DISABLED to test clicks */}
+                {false && isProfileMenuOpen && createPortal(
+                  <div 
+                    className="fixed inset-0 z-[10020]" 
+                    onClick={() => {
+                      console.log('TopNavBar: Profile backdrop clicked')
+                      setIsProfileMenuOpen(false)
+                    }}
+                    />,
+                    document.body
+                )}
+                
+                {/* Profile dropdown menu - rendered via React Portal AFTER backdrop to ensure proper layering */}
+                {isProfileMenuOpen && createPortal(
+                  <div 
+                    data-dropdown-menu="profile"
+                    className="fixed top-16 right-4 w-[250px] rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-100 z-[10021]"
+                    style={{
+                      pointerEvents: 'auto'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                    }}
+                  >
+                    <div className="px-4 py-3">
+                      <div className="text-sm text-gray-500">Signed in as</div>
+                      <div className="text-sm font-medium text-gray-900 truncate">
+                        {userProfile.email.length > 22 ? `${userProfile.email.substring(0, 19)}...` : userProfile.email}
+                      </div>
+                    </div>
+                    
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false)
+                          // Navigate to centralized user profile management on port 3012
+                          window.open('http://localhost:3012/profile', '_blank')
+                        }}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                      >
+                        <UserIcon className="mr-3 h-4 w-4" />
+                        Profile Settings
+                      </button>
+                      <Link
+                        to="/settings"
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                      >
+                        <Cog6ToothIcon className="mr-3 h-4 w-4" />
+                        Settings
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false)
+                          window.open('http://localhost:3012/terms-of-service', '_blank')
+                        }}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                      >
+                        <DocumentTextIcon className="mr-3 h-4 w-4" />
+                        Terms of Service
+                      </button>
+                    </div>
+                    
+                    <div className="py-1">
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                      >
+                        <ArrowRightOnRectangleIcon className="mr-3 h-4 w-4" />
+                        Sign out
+                      </button>
+                    </div>
+                    </div>,
+                    document.body
+                  )
+                }
+              </div>
+            ) : (
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={handleGoogleSignIn}
+                  disabled={isSigningIn}
+                  className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  <span>{isSigningIn ? 'Signing in...' : 'Sign in with Google'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
+  )
+}
+
+export default TopNavBar

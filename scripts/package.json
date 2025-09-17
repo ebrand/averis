@@ -1,0 +1,9 @@
+{
+  "name": "commerce-scripts",
+  "version": "1.0.0",
+  "description": "Utility scripts for commerce system",
+  "type": "module",
+  "dependencies": {
+    "pg": "^8.12.0"
+  }
+}

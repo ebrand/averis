@@ -1,0 +1,38 @@
+Now I need a pricing database schema based on the product schema we used in the product-mdm project. The pricing schema should contain a product table (read-only, except for messaging updates), but with only the fields required to affect pricing in related, more complex tables.
+
+I will need a number of related fields to store and maintain pricing and availability by catalog. The catalogs should represent market segments within a region: "AMER Direct", "AMER Partner", "EMEA Direct", "EMEA Partner", "APAC Direct", "APAC Partner", etc. Pricing should include standard structure for maintaining pricing, discounts, and special offers by catalog.
+
+Eventually, we will consume a message stream from the product-mdm system to keep the pricing-mdm copy of product in-sync. We will then allow authenticated/authorized users to create and maintain pricing structures off of that base.
+
+
+The pricing-mdm site works perfectly. Let's start skinning it. I'd like for the primary color to be Hunter Green. The title should read "Enterprise Pricing Data Management" and the short title should be "Pricing MDM". We'll re-arrane/re-name the top- and sub-nav elements next.
+
+For the pricing-mdm app, we'll be working with two REGIONS: 'AMER' (Americas), and 'EMEA' (Europe-Middleast-Asia). In both regions we'll be working with two CHANNELS: 'Direct' (individual consumers, companies using our products, etc.) and 'Channel' (resellers, distributors who list, sell, and support our products for a commission).
+
+The workflow will be this: authorized catalog users ('catalog_amer', 'catalog_emea', etc.) will create catalogs for a combination of region and channel (an authorized user can create catalogs for all channels in a regioin), thus making certain products available to those channels in a specific region. Next, authorized pricing users ('pricing_amer', 'pricing_emea', etc.) users will adjust pricing for the products included in various catalogs. We'll be using the same "Go for Launch" and final "Launch Pricing" model we used in the product-mdm system.
+
+Here are the roles I'd like to use for pricing-mdm:
+pricing_mdm - main role that we should check on login
+pricing_amer - role to allow maintaining prices in catalogs defined for the AMER region
+pricing_amer_approve - the approval role for AMER pricing data
+pricing_emea - role to allow maintaining prices in catalogs defined for the EMEA region
+pricing_emea_approve - the approval role for EMEA pricing data
+catalog_amer - role to allow maintaining catalogs for the AMER region
+catalog_amer_approval - approval role
+catalog_emea - role to allow maintaining catalogs for the EMEA region
+catalog_emea_approve - approval role
+
+
+
+1. Product-MDM:
+    - API: cd /Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/product-mdm/api && node src/server.js
+    - UI: cd /Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/product-mdm/ui && npm run dev
+  2. Pricing-MDM:
+    - API: cd /Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/pricing-mdm/api && node src/server.js
+    - UI: cd /Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/pricing-mdm/ui && npm run dev
+
+
+I want to make sure that the product data in the pricing-mdm database is storing (and keeping in-sync via messaging from the product-mdm app) a cursory set of fields - only those required to maintain catalog functionality (pricing and availability). Likewise, the ecommerce app should have its own database and set of product tables with a cursory set of fields (only those needed to display products on the site and purchase them via the cart). The ecommerce site should have it's own "ingest server" that responds to messages from the product-mdm app just like the pricing-mdm app does. When the ecommerce site goes to render a set of products for sale, it will use the product IDs and pricing from the catalog, but augment any additional data it may need for display from it's own set of product tables. This should minimize the load on the product-mdm, distributing in real-time the product data each consumer needs to be successful.
+
+Can we remove all product data from the pricing-mdm; copy over only products from the product-mdm that have been 'launched' (in 'active' status). Then in the product-mdm, only create and publish messages for product data in the 'active' status. The pricing-mdm ingest process should treat all UPDATE messages as UPSERT messages so that when UPDATE messages are sent for a product the pricing-mdm app doesn't have, it will simply insert them. This should allow users of the product-mdm app to create and maintain products in 'draft' status and only message them downstream when they are "launched" in 'active' status.
+

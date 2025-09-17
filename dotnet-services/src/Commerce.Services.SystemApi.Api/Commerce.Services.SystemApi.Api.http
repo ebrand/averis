@@ -1,0 +1,6 @@
+@Commerce.Services.SystemApi.Api_HostAddress = http://localhost:5187
+
+GET {{Commerce.Services.SystemApi.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

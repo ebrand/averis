@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-mdm-api
+  namespace: commerce-dev
+  labels:
+    app: product-mdm-api
+    tier: api
+    component: product-mdm
+spec:
+  replicas: 2  # Horizontal scaling demo
+  selector:
+    matchLabels:
+      app: product-mdm-api
+  template:
+    metadata:
+      labels:
+        app: product-mdm-api
+        tier: api
+        component: product-mdm
+    spec:
+      containers:
+      - name: api
+        image: node:18-alpine
+        command: ["sh", "-c"]
+        args: ["npm install && npm start"]
+        workingDir: /app
+        ports:
+        - containerPort: 6001
+        env:
+        - name: PORT
+          value: "6001"
+        - name: DB_HOST
+          value: "postgresql-service"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "commerce_db"
+        - name: DB_SCHEMA
+          value: "product_mdm"
+        - name: DB_USER
+          value: "postgres"
+        - name: DB_PASSWORD
+          value: "postgres"
+        - name: RABBITMQ_HOST
+          value: "rabbitmq-service"
+        - name: RABBITMQ_PORT
+          value: "5672"
+        volumeMounts:
+        - name: source-code
+          mountPath: /app
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 6001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 6001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: source-code
+        hostPath:
+          path: /Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/product-mdm/api
+          type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-mdm-api-service
+  namespace: commerce-dev
+spec:
+  selector:
+    app: product-mdm-api
+  ports:
+  - port: 6001
+    targetPort: 6001
+  type: ClusterIP

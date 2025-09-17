@@ -1,0 +1,35 @@
+{
+  "name": "product-mdm",
+  "version": "1.0.0",
+  "description": "Product Master Data Management System",
+  "private": true,
+  "workspaces": [
+    "ui",
+    "api"
+  ],
+  "scripts": {
+    "install:all": "npm install && npm run install:ui && npm run install:api",
+    "install:ui": "cd ui && npm install",
+    "install:api": "cd api && npm install",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:ui\"",
+    "dev:ui": "cd ui && npm run dev",
+    "dev:api": "cd api && npm run dev",
+    "start:db": "cd database && docker-compose up -d",
+    "stop:db": "cd database && docker-compose down",
+    "build:ui": "cd ui && npm run build",
+    "preview:ui": "cd ui && npm run preview"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "product",
+    "mdm",
+    "master-data-management",
+    "react",
+    "nodejs",
+    "postgresql"
+  ],
+  "author": "",
+  "license": "ISC"
+}

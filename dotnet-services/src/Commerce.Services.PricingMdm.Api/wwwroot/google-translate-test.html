@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Translate Test - Pricing MDM API</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen py-8">
+    <div class="max-w-4xl mx-auto px-4">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Google Translate Test</h1>
+            <p class="text-gray-600 mb-6">Test the Google Cloud Translation API integration for the Pricing MDM system.</p>
+            
+            <!-- Single Translation Test -->
+            <div class="bg-blue-50 rounded-lg p-6 mb-8">
+                <h2 class="text-xl font-semibold text-blue-900 mb-4">Single Text Translation</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="sourceLanguage" class="block text-sm font-medium text-gray-700 mb-2">Source Language</label>
+                        <select id="sourceLanguage" class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="it">Italian</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="ru">Russian</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                            <option value="zh">Chinese</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="targetLanguage" class="block text-sm font-medium text-gray-700 mb-2">Target Language</label>
+                        <select id="targetLanguage" class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                            <option value="es">Spanish</option>
+                            <option value="en">English</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="it">Italian</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="ru">Russian</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                            <option value="zh">Chinese</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="sourceText" class="block text-sm font-medium text-gray-700 mb-2">Text to Translate</label>
+                    <textarea id="sourceText" rows="4" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="Enter text to translate...">Premium Widget Pro - The ultimate solution for professional applications</textarea>
+                </div>
+                
+                <button id="translateBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                    <span id="translateBtnText">Translate</span>
+                    <svg id="translateSpinner" class="loading w-4 h-4 ml-2 hidden inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.25"></circle>
+                        <path fill="currentColor" opacity="0.75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+                
+                <div id="translationResult" class="mt-4 hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Translation Result</label>
+                    <div class="bg-gray-100 p-3 rounded-md border">
+                        <p id="translatedText" class="text-gray-900"></p>
+                    </div>
+                </div>
+                
+                <div id="translationError" class="mt-4 hidden">
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                        <p id="errorText"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Batch Translation Test -->
+            <div class="bg-green-50 rounded-lg p-6 mb-8">
+                <h2 class="text-xl font-semibold text-green-900 mb-4">Batch Translation Test</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="batchSourceLang" class="block text-sm font-medium text-gray-700 mb-2">Source Language</label>
+                        <select id="batchSourceLang" class="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="it">Italian</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="batchTargetLang" class="block text-sm font-medium text-gray-700 mb-2">Target Language</label>
+                        <select id="batchTargetLang" class="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
+                            <option value="es">Spanish</option>
+                            <option value="en">English</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="it">Italian</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="batchTexts" class="block text-sm font-medium text-gray-700 mb-2">Texts to Translate (one per line)</label>
+                    <textarea id="batchTexts" rows="6" class="w-full p-3 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500" placeholder="Enter multiple texts, one per line...">Premium Widget Pro
+The ultimate solution for professional applications
+High-quality aluminum construction
+Waterproof and durable design
+Suitable for outdoor use</textarea>
+                </div>
+                
+                <button id="batchTranslateBtn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                    <span id="batchTranslateBtnText">Translate Batch</span>
+                    <svg id="batchTranslateSpinner" class="loading w-4 h-4 ml-2 hidden inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.25"></circle>
+                        <path fill="currentColor" opacity="0.75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+                
+                <div id="batchResult" class="mt-4 hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Batch Translation Results</label>
+                    <div id="batchResultsContainer" class="space-y-3"></div>
+                </div>
+                
+                <div id="batchError" class="mt-4 hidden">
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                        <p id="batchErrorText"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- API Status -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">API Status</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white p-4 rounded border">
+                        <h3 class="font-medium text-gray-700 mb-2">Translation Service</h3>
+                        <p id="serviceStatus" class="text-sm text-gray-600">Checking...</p>
+                    </div>
+                    <div class="bg-white p-4 rounded border">
+                        <h3 class="font-medium text-gray-700 mb-2">API Key Status</h3>
+                        <p id="apiKeyStatus" class="text-sm text-gray-600">Checking...</p>
+                    </div>
+                    <div class="bg-white p-4 rounded border">
+                        <h3 class="font-medium text-gray-700 mb-2">Supported Languages</h3>
+                        <p id="languageCount" class="text-sm text-gray-600">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Base API URL
+        const API_BASE = window.location.origin;
+        
+        // DOM Elements
+        const translateBtn = document.getElementById('translateBtn');
+        const translateBtnText = document.getElementById('translateBtnText');
+        const translateSpinner = document.getElementById('translateSpinner');
+        const translationResult = document.getElementById('translationResult');
+        const translatedText = document.getElementById('translatedText');
+        const translationError = document.getElementById('translationError');
+        const errorText = document.getElementById('errorText');
+        
+        const batchTranslateBtn = document.getElementById('batchTranslateBtn');
+        const batchTranslateBtnText = document.getElementById('batchTranslateBtnText');
+        const batchTranslateSpinner = document.getElementById('batchTranslateSpinner');
+        const batchResult = document.getElementById('batchResult');
+        const batchResultsContainer = document.getElementById('batchResultsContainer');
+        const batchError = document.getElementById('batchError');
+        const batchErrorText = document.getElementById('batchErrorText');
+        
+        const serviceStatus = document.getElementById('serviceStatus');
+        const apiKeyStatus = document.getElementById('apiKeyStatus');
+        const languageCount = document.getElementById('languageCount');
+        
+        // Helper functions
+        function showLoading(button, textElement, spinner) {
+            button.disabled = true;
+            textElement.textContent = 'Translating...';
+            spinner.classList.remove('hidden');
+        }
+        
+        function hideLoading(button, textElement, spinner, originalText) {
+            button.disabled = false;
+            textElement.textContent = originalText;
+            spinner.classList.add('hidden');
+        }
+        
+        function showError(errorElement, errorTextElement, message) {
+            errorElement.classList.remove('hidden');
+            errorTextElement.textContent = message;
+        }
+        
+        function hideError(errorElement) {
+            errorElement.classList.add('hidden');
+        }
+        
+        // Create a test endpoint to directly test the translation service
+        async function testTranslation(text, sourceLanguage, targetLanguage) {
+            try {
+                const response = await fetch(`${API_BASE}/api/test/translate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        sourceLanguage: sourceLanguage,
+                        targetLanguage: targetLanguage
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data.translatedText;
+            } catch (error) {
+                console.error('Translation error:', error);
+                throw error;
+            }
+        }
+        
+        async function testBatchTranslation(texts, sourceLanguage, targetLanguage) {
+            try {
+                const response = await fetch(`${API_BASE}/api/test/translate-batch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        texts: texts,
+                        sourceLanguage: sourceLanguage,
+                        targetLanguage: targetLanguage
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data.translations;
+            } catch (error) {
+                console.error('Batch translation error:', error);
+                throw error;
+            }
+        }
+        
+        // Event Listeners
+        translateBtn.addEventListener('click', async () => {
+            const sourceText = document.getElementById('sourceText').value;
+            const sourceLanguage = document.getElementById('sourceLanguage').value;
+            const targetLanguage = document.getElementById('targetLanguage').value;
+            
+            if (!sourceText.trim()) {
+                showError(translationError, errorText, 'Please enter text to translate');
+                return;
+            }
+            
+            hideError(translationError);
+            translationResult.classList.add('hidden');
+            showLoading(translateBtn, translateBtnText, translateSpinner);
+            
+            try {
+                const result = await testTranslation(sourceText, sourceLanguage, targetLanguage);
+                translatedText.textContent = result;
+                translationResult.classList.remove('hidden');
+            } catch (error) {
+                showError(translationError, errorText, `Translation failed: ${error.message}`);
+            } finally {
+                hideLoading(translateBtn, translateBtnText, translateSpinner, 'Translate');
+            }
+        });
+        
+        batchTranslateBtn.addEventListener('click', async () => {
+            const batchTexts = document.getElementById('batchTexts').value.split('\n').filter(text => text.trim());
+            const sourceLanguage = document.getElementById('batchSourceLang').value;
+            const targetLanguage = document.getElementById('batchTargetLang').value;
+            
+            if (batchTexts.length === 0) {
+                showError(batchError, batchErrorText, 'Please enter texts to translate');
+                return;
+            }
+            
+            hideError(batchError);
+            batchResult.classList.add('hidden');
+            showLoading(batchTranslateBtn, batchTranslateBtnText, batchTranslateSpinner);
+            
+            try {
+                const results = await testBatchTranslation(batchTexts, sourceLanguage, targetLanguage);
+                
+                batchResultsContainer.innerHTML = '';
+                Object.entries(results).forEach(([original, translated]) => {
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = 'bg-white p-3 rounded border';
+                    resultDiv.innerHTML = `
+                        <div class="text-sm text-gray-600 mb-1">Original:</div>
+                        <div class="text-gray-900 mb-2">${original}</div>
+                        <div class="text-sm text-gray-600 mb-1">Translation:</div>
+                        <div class="text-green-700 font-medium">${translated}</div>
+                    `;
+                    batchResultsContainer.appendChild(resultDiv);
+                });
+                
+                batchResult.classList.remove('hidden');
+            } catch (error) {
+                showError(batchError, batchErrorText, `Batch translation failed: ${error.message}`);
+            } finally {
+                hideLoading(batchTranslateBtn, batchTranslateBtnText, batchTranslateSpinner, 'Translate Batch');
+            }
+        });
+        
+        // Check API status on load
+        async function checkApiStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                serviceStatus.textContent = data.status === 'healthy' ? '✅ Online' : '❌ Offline';
+                serviceStatus.className = data.status === 'healthy' ? 'text-sm text-green-600' : 'text-sm text-red-600';
+                
+                // Check if we have Google Translate configured
+                const hasApiKey = process.env.GOOGLE_TRANSLATE_API_KEY || data.features?.translation;
+                apiKeyStatus.textContent = hasApiKey ? '✅ Configured' : '⚠️ Check Configuration';
+                apiKeyStatus.className = hasApiKey ? 'text-sm text-green-600' : 'text-sm text-yellow-600';
+                
+                languageCount.textContent = '50+ Languages Supported';
+                languageCount.className = 'text-sm text-gray-600';
+                
+            } catch (error) {
+                serviceStatus.textContent = '❌ Cannot connect';
+                serviceStatus.className = 'text-sm text-red-600';
+                apiKeyStatus.textContent = '❌ Unknown';
+                apiKeyStatus.className = 'text-sm text-red-600';
+                languageCount.textContent = 'Unable to check';
+                languageCount.className = 'text-sm text-red-600';
+            }
+        }
+        
+        // Initialize
+        checkApiStatus();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Region-Country-Locale Tree with Compliance</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #1a365d;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 16px;
+            margin-bottom: 16px;
+        }
+
+        .feature-badges {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .feature-badge {
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .feature-badge.new {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 450px;
+            gap: 24px;
+        }
+
+        .tree-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+
+        .details-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .panel-header h2 {
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background: #3182ce;
+        }
+
+        .btn-secondary {
+            background: #718096;
+        }
+
+        .btn-secondary:hover {
+            background: #4a5568;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+
+        .tree {
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            margin: 1px 0;
+        }
+
+        .tree-node:hover {
+            background: #edf2f7;
+        }
+
+        .tree-node.selected {
+            background: #bee3f8;
+            color: #1a365d;
+            box-shadow: 0 0 0 2px #90cdf4;
+        }
+
+        .tree-node.region {
+            font-weight: bold;
+            color: #2b6cb0;
+            margin: 8px 0 4px 0;
+            padding-left: 0;
+        }
+
+        .tree-node.country {
+            color: #38a169;
+            margin-left: 20px;
+            padding-left: 8px;
+            border-left: 2px solid #e2e8f0;
+        }
+
+        .tree-node.locale {
+            color: #805ad5;
+            margin-left: 40px;
+            padding-left: 8px;
+            border-left: 2px solid #e2e8f0;
+        }
+
+        .tree-icon {
+            margin-right: 8px;
+            font-size: 16px;
+            min-width: 20px;
+        }
+
+        .tree-expand {
+            cursor: pointer;
+            margin-right: 4px;
+            font-weight: bold;
+            color: #a0aec0;
+            transition: transform 0.2s;
+            min-width: 12px;
+        }
+
+        .tree-expand.expanded {
+            transform: rotate(90deg);
+        }
+
+        .node-badges {
+            display: flex;
+            gap: 4px;
+            margin-left: auto;
+        }
+
+        .node-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-primary {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        .badge-multilingual {
+            background: #e6fffa;
+            color: #234e52;
+        }
+
+        .badge-risk-low {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge-risk-medium {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        .badge-risk-high {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .badge-sanctions {
+            background: #fed7d7;
+            color: #742a2a;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .detail-card {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .detail-card h3 {
+            color: #2d3748;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            font-weight: 500;
+            color: #4a5568;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            color: #2d3748;
+            font-weight: 500;
+        }
+
+        .compliance-section {
+            background: #fffbf0;
+            border: 1px solid #f6e05e;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .compliance-section.high-risk {
+            background: #fff5f5;
+            border-color: #fc8181;
+        }
+
+        .compliance-section.low-risk {
+            background: #f0fff4;
+            border-color: #9ae6b4;
+        }
+
+        .compliance-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .risk-indicator {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .risk-low {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .risk-medium {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        .risk-high {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .actions-section {
+            margin-top: 20px;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .ip-detection {
+            background: #ebf8ff;
+            border: 1px solid #90cdf4;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+        }
+
+        .ip-detection h4 {
+            color: #2c5aa0;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .ip-demo {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .ip-input {
+            flex: 1;
+            padding: 6px 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-active {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-inactive {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .search-box {
+            margin-bottom: 16px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .locale-priority {
+            font-size: 10px;
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 2px 4px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+
+        .locale-priority.primary {
+            background: #fef5e7;
+            color: #744210;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <span>🌐</span>
+                Enhanced Region-Country-Locale Management
+            </h1>
+            <p>Hierarchical tree with IP-based detection, compliance screening, and cross-region shopping support</p>
+            <div class="feature-badges">
+                <span class="feature-badge new">IP Detection</span>
+                <span class="feature-badge new">Compliance Screening</span>
+                <span class="feature-badge new">Multi-Locale Countries</span>
+                <span class="feature-badge">Default Locale Selection</span>
+                <span class="feature-badge">Cross-Region Shopping</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="tree-panel">
+                <div class="panel-header">
+                    <h2><span>🌳</span> Region → Country → Locale Hierarchy</h2>
+                    <div>
+                        <button class="btn btn-small" onclick="expandAll()">Expand All</button>
+                        <button class="btn btn-small" onclick="collapseAll()">Collapse All</button>
+                        <button class="btn" onclick="refreshTree()">
+                            <span>🔄</span> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div class="search-box">
+                    <input 
+                        type="text" 
+                        class="search-input" 
+                        placeholder="Search countries, locales, or regions..."
+                        oninput="filterTree(this.value)"
+                    >
+                </div>
+                
+                <div id="tree-container">
+                    <div class="loading">Loading enhanced tree structure...</div>
+                </div>
+            </div>
+
+            <div class="details-panel">
+                <div class="panel-header">
+                    <h2><span>📊</span> Node Details & Compliance</h2>
+                    <div>
+                        <button class="btn btn-secondary btn-small" onclick="addNode()">
+                            <span>➕</span> Add
+                        </button>
+                    </div>
+                </div>
+
+                <div class="ip-detection">
+                    <h4>🔍 IP-Based Country Detection Demo</h4>
+                    <div class="ip-demo">
+                        <input 
+                            type="text" 
+                            class="ip-input" 
+                            placeholder="Enter IP address..." 
+                            id="ip-input"
+                            value="192.168.1.1"
+                        >
+                        <button class="btn btn-small" onclick="detectFromIp()">Detect</button>
+                    </div>
+                </div>
+
+                <div id="details-container">
+                    <div class="detail-card">
+                        <p style="color: #718096; text-align: center; padding: 40px;">
+                            Select a node from the tree to view details and compliance information
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSelectedNode = null;
+        let treeData = [];
+        let originalTreeData = [];
+
+        // Enhanced mock data with Region → Country → Locale hierarchy
+        const mockEnhancedTreeData = [
+            {
+                id: 'region_americas',
+                name: 'Americas (AMER)',
+                type: 'region',
+                icon: '🌎',
+                expanded: true,
+                metadata: {
+                    code: 'AMER',
+                    description: 'North and South America region',
+                    catalogCount: 4,
+                    itemCount: 8,
+                    status: 'Active'
+                },
+                children: [
+                    {
+                        id: 'country_us',
+                        name: 'United States 🇺🇸',
+                        type: 'country',
+                        icon: '🇺🇸',
+                        expanded: true,
+                        metadata: {
+                            code: 'US',
+                            nativeName: 'United States',
+                            continent: 'North America',
+                            phonePrefix: '+1',
+                            complianceRisk: 'Low',
+                            hasMultipleLocales: false,
+                            supportsShipping: true,
+                            supportsBilling: true,
+                            status: 'Active'
+                        },
+                        children: [
+                            {
+                                id: 'locale_en_us',
+                                name: 'English (United States) ⭐',
+                                type: 'locale',
+                                icon: '🗽',
+                                metadata: {
+                                    code: 'en_US',
+                                    nativeName: 'English (United States)',
+                                    currency: 'USD ($)',
+                                    isRtl: false,
+                                    isPrimary: true,
+                                    priority: 1,
+                                    status: 'Active'
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        id: 'country_ca',
+                        name: 'Canada 🇨🇦',
+                        type: 'country',
+                        icon: '🇨🇦',
+                        expanded: false,
+                        metadata: {
+                            code: 'CA',
+                            nativeName: 'Canada',
+                            continent: 'North America',
+                            phonePrefix: '+1',
+                            complianceRisk: 'Low',
+                            hasMultipleLocales: true,
+                            supportsShipping: true,
+                            supportsBilling: true,
+                            status: 'Active'
+                        },
+                        children: [
+                            {
+                                id: 'locale_en_ca',
+                                name: 'English (Canada) ⭐',
+                                type: 'locale',
+                                icon: '🍁',
+                                metadata: {
+                                    code: 'en_CA',
+                                    nativeName: 'English (Canada)',
+                                    currency: 'CAD (C$)',
+                                    isRtl: false,
+                                    isPrimary: true,
+                                    priority: 1,
+                                    status: 'Active'
+                                }
+                            },
+                            {
+                                id: 'locale_fr_ca',
+                                name: 'French (Canada)',
+                                type: 'locale',
+                                icon: '🍁',
+                                metadata: {
+                                    code: 'fr_CA',
+                                    nativeName: 'Français (Canada)',
+                                    currency: 'CAD (C$)',
+                                    isRtl: false,
+                                    isPrimary: false,
+                                    priority: 2,
+                                    status: 'Active'
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        id: 'country_mx',
+                        name: 'Mexico 🇲🇽',
+                        type: 'country',
+                        icon: '🇲🇽',
+                        expanded: false,
+                        metadata: {
+                            code: 'MX',
+                            nativeName: 'México',
+                            continent: 'North America',
+                            phonePrefix: '+52',
+                            complianceRisk: 'Medium',
+                            hasMultipleLocales: false,
+                            supportsShipping: true,
+                            supportsBilling: true,
+                            status: 'Active'
+                        },
+                        children: [
+                            {
+                                id: 'locale_es_mx',
+                                name: 'Spanish (Mexico) ⭐',
+                                type: 'locale',
+                                icon: '🌮',
+                                metadata: {
+                                    code: 'es_MX',
+                                    nativeName: 'Español (México)',
+                                    currency: 'MXN ($)',
+                                    isRtl: false,
+                                    isPrimary: true,
+                                    priority: 1,
+                                    status: 'Active'
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'region_emea',
+                name: 'Europe, Middle East & Africa (EMEA)',
+                type: 'region',
+                icon: '🌍',
+                expanded: true,
+                metadata: {
+                    code: 'EMEA',
+                    description: 'Europe, Middle East and Africa region',
+                    catalogCount: 3,
+                    itemCount: 15,
+                    status: 'Active'
+                },
+                children: [
+                    {
+                        id: 'country_fr',
+                        name: 'France 🇫🇷',
+                        type: 'country',
+                        icon: '🇫🇷',
+                        expanded: true,
+                        metadata: {
+                            code: 'FR',
+                            nativeName: 'France',
+                            continent: 'Europe',
+                            phonePrefix: '+33',
+                            complianceRisk: 'Low',
+                            hasMultipleLocales: false,
+                            supportsShipping: true,
+                            supportsBilling: true,
+                            status: 'Active'
+                        },
+                        children: [
+                            {
+                                id: 'locale_fr_fr',
+                                name: 'French (France) ⭐',
+                                type: 'locale',
+                                icon: '🥖',
+                                metadata: {
+                                    code: 'fr_FR',
+                                    nativeName: 'Français (France)',
+                                    currency: 'EUR (€)',
+                                    isRtl: false,
+                                    isPrimary: true,
+                                    priority: 1,
+                                    status: 'Active'
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        id: 'country_ch',
+                        name: 'Switzerland 🇨🇭',
+                        type: 'country',
+                        icon: '🇨🇭',
+                        expanded: false,
+                        metadata: {
+                            code: 'CH',
+                            nativeName: 'Schweiz/Suisse/Svizzera',
+                            continent: 'Europe',
+                            phonePrefix: '+41',
+                            complianceRisk: 'Low',
+                            hasMultipleLocales: true,
+                            supportsShipping: true,
+                            supportsBilling: true,
+                            status: 'Active'
+                        },
+                        children: [
+                            {
+                                id: 'locale_de_ch',
+                                name: 'German (Switzerland) ⭐',
+                                type: 'locale',
+                                icon: '🏔️',
+                                metadata: {
+                                    code: 'de_CH',
+                                    nativeName: 'Deutsch (Schweiz)',
+                                    currency: 'CHF',
+                                    isRtl: false,
+                                    isPrimary: true,
+                                    priority: 1,
+                                    status: 'Active'
+                                }
+                            },
+                            {
+                                id: 'locale_fr_ch',
+                                name: 'French (Switzerland)',
+                                type: 'locale',
+                                icon: '🏔️',
+                                metadata: {
+                                    code: 'fr_CH',
+                                    nativeName: 'Français (Suisse)',
+                                    currency: 'CHF',
+                                    isRtl: false,
+                                    isPrimary: false,
+                                    priority: 2,
+                                    status: 'Active'
+                                }
+                            },
+                            {
+                                id: 'locale_it_ch',
+                                name: 'Italian (Switzerland)',
+                                type: 'locale',
+                                icon: '🏔️',
+                                metadata: {
+                                    code: 'it_CH',
+                                    nativeName: 'Italiano (Svizzera)',
+                                    currency: 'CHF',
+                                    isRtl: false,
+                                    isPrimary: false,
+                                    priority: 3,
+                                    status: 'Active'
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        id: 'country_ru',
+                        name: 'Russia 🇷🇺',
+                        type: 'country',
+                        icon: '🇷🇺',
+                        expanded: false,
+                        metadata: {
+                            code: 'RU',
+                            nativeName: 'Россия',
+                            continent: 'Europe/Asia',
+                            phonePrefix: '+7',
+                            complianceRisk: 'High',
+                            hasSanctions: true,
+                            hasExportRestrictions: true,
+                            hasMultipleLocales: false,
+                            supportsShipping: false,
+                            supportsBilling: false,
+                            status: 'Restricted'
+                        },
+                        children: [
+                            {
+                                id: 'locale_ru_ru',
+                                name: 'Russian (Russia) ⚠️',
+                                type: 'locale',
+                                icon: '🏛️',
+                                metadata: {
+                                    code: 'ru_RU',
+                                    nativeName: 'Русский (Россия)',
+                                    currency: 'RUB (₽)',
+                                    isRtl: false,
+                                    isPrimary: true,
+                                    priority: 1,
+                                    status: 'Restricted',
+                                    complianceWarning: 'Subject to comprehensive sanctions'
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'region_apj',
+                name: 'Asia Pacific & Japan (APJ)',
+                type: 'region',
+                icon: '🌏',
+                expanded: false,
+                metadata: {
+                    code: 'APJ',
+                    description: 'Asia Pacific and Japan region',
+                    catalogCount: 2,
+                    itemCount: 12,
+                    status: 'Active'
+                },
+                children: [
+                    {
+                        id: 'country_jp',
+                        name: 'Japan 🇯🇵',
+                        type: 'country',
+                        icon: '🇯🇵',
+                        expanded: false,
+                        metadata: {
+                            code: 'JP',
+                            nativeName: '日本',
+                            continent: 'Asia',
+                            phonePrefix: '+81',
+                            complianceRisk: 'Low',
+                            hasMultipleLocales: false,
+                            supportsShipping: true,
+                            supportsBilling: true,
+                            status: 'Active'
+                        },
+                        children: [
+                            {
+                                id: 'locale_ja_jp',
+                                name: 'Japanese (Japan) ⭐',
+                                type: 'locale',
+                                icon: '🗾',
+                                metadata: {
+                                    code: 'ja_JP',
+                                    nativeName: '日本語（日本）',
+                                    currency: 'JPY (¥)',
+                                    isRtl: false,
+                                    isPrimary: true,
+                                    priority: 1,
+                                    status: 'Active'
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        id: 'country_cn',
+                        name: 'China 🇨🇳',
+                        type: 'country',
+                        icon: '🇨🇳',
+                        expanded: false,
+                        metadata: {
+                            code: 'CN',
+                            nativeName: '中国',
+                            continent: 'Asia',
+                            phonePrefix: '+86',
+                            complianceRisk: 'Medium',
+                            hasExportRestrictions: true,
+                            hasMultipleLocales: false,
+                            supportsShipping: true,
+                            supportsBilling: true,
+                            status: 'Active'
+                        },
+                        children: [
+                            {
+                                id: 'locale_zh_cn',
+                                name: 'Chinese (China) ⭐',
+                                type: 'locale',
+                                icon: '🏯',
+                                metadata: {
+                                    code: 'zh_CN',
+                                    nativeName: '中文（中国）',
+                                    currency: 'CNY (¥)',
+                                    isRtl: false,
+                                    isPrimary: true,
+                                    priority: 1,
+                                    status: 'Active'
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        function renderTree() {
+            const container = document.getElementById('tree-container');
+            container.innerHTML = '';
+
+            function renderNode(node, level = 0) {
+                const nodeElement = document.createElement('div');
+                
+                const hasChildren = node.children && node.children.length > 0;
+                const badges = generateNodeBadges(node);
+                
+                nodeElement.innerHTML = `
+                    <div class="tree-node ${node.type}" data-node-id="${node.id}">
+                        ${hasChildren ? 
+                            `<span class="tree-expand ${node.expanded ? 'expanded' : ''}" data-node-id="${node.id}">▶</span>` : 
+                            '<span style="width: 16px; display: inline-block;"></span>'
+                        }
+                        <span class="tree-icon">${node.icon}</span>
+                        <span>${node.name}${node.metadata?.priority ? `<span class="locale-priority ${node.metadata.priority === 1 ? 'primary' : ''}">${node.metadata.priority}</span>` : ''}</span>
+                        <div class="node-badges">
+                            ${badges}
+                        </div>
+                    </div>
+                `;
+
+                // Add click handler for node selection
+                const nodeDiv = nodeElement.querySelector('.tree-node');
+                nodeDiv.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('tree-expand')) return;
+                    selectNode(node);
+                });
+
+                // Add click handler for expand/collapse
+                const expandButton = nodeElement.querySelector('.tree-expand');
+                if (expandButton) {
+                    expandButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleNode(node.id);
+                    });
+                }
+
+                container.appendChild(nodeElement);
+
+                // Render children if expanded
+                if (node.expanded && node.children) {
+                    node.children.forEach(child => renderNode(child, level + 1));
+                }
+            }
+
+            treeData.forEach(node => renderNode(node));
+        }
+
+        function generateNodeBadges(node) {
+            let badges = [];
+
+            // Status badge
+            const statusClass = node.metadata?.status?.toLowerCase() === 'active' ? 'status-active' : 'status-inactive';
+            badges.push(`<span class="node-badge status-badge ${statusClass}">${node.metadata?.status || 'Unknown'}</span>`);
+
+            // Type-specific badges
+            if (node.type === 'country') {
+                if (node.metadata?.hasMultipleLocales) {
+                    badges.push(`<span class="node-badge badge-multilingual">Multi</span>`);
+                }
+
+                if (node.metadata?.complianceRisk) {
+                    const riskClass = `badge-risk-${node.metadata.complianceRisk.toLowerCase()}`;
+                    badges.push(`<span class="node-badge ${riskClass}">${node.metadata.complianceRisk}</span>`);
+                }
+
+                if (node.metadata?.hasSanctions) {
+                    badges.push(`<span class="node-badge badge-sanctions">Sanctions</span>`);
+                }
+            }
+
+            if (node.type === 'locale' && node.metadata?.isPrimary) {
+                badges.push(`<span class="node-badge badge-primary">Primary</span>`);
+            }
+
+            return badges.join('');
+        }
+
+        function toggleNode(nodeId) {
+            function findAndToggle(nodes) {
+                for (let node of nodes) {
+                    if (node.id === nodeId) {
+                        node.expanded = !node.expanded;
+                        return true;
+                    }
+                    if (node.children && findAndToggle(node.children)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            findAndToggle(treeData);
+            renderTree();
+        }
+
+        function selectNode(node) {
+            // Remove previous selection
+            document.querySelectorAll('.tree-node.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+
+            // Add selection to clicked node
+            const nodeEl = document.querySelector(`[data-node-id="${node.id}"]`);
+            if (nodeEl) {
+                nodeEl.classList.add('selected');
+            }
+            
+            currentSelectedNode = node;
+            renderNodeDetails(node);
+        }
+
+        function renderNodeDetails(node) {
+            const container = document.getElementById('details-container');
+            
+            let complianceSection = '';
+            if (node.type === 'country' || node.type === 'locale') {
+                complianceSection = generateComplianceSection(node);
+            }
+
+            let typeSpecificDetails = '';
+            switch (node.type) {
+                case 'country':
+                    typeSpecificDetails = `
+                        <div class="detail-item">
+                            <span class="detail-label">Native Name</span>
+                            <span class="detail-value">${node.metadata?.nativeName || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Continent</span>
+                            <span class="detail-value">${node.metadata?.continent || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Phone Prefix</span>
+                            <span class="detail-value">${node.metadata?.phonePrefix || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Multiple Locales</span>
+                            <span class="detail-value">${node.metadata?.hasMultipleLocales ? 'Yes' : 'No'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Shipping</span>
+                            <span class="detail-value">${node.metadata?.supportsShipping ? '✅ Supported' : '❌ Not Supported'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Billing</span>
+                            <span class="detail-value">${node.metadata?.supportsBilling ? '✅ Supported' : '❌ Not Supported'}</span>
+                        </div>
+                    `;
+                    break;
+                case 'locale':
+                    typeSpecificDetails = `
+                        <div class="detail-item">
+                            <span class="detail-label">Native Name</span>
+                            <span class="detail-value">${node.metadata?.nativeName || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Currency</span>
+                            <span class="detail-value">${node.metadata?.currency || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Text Direction</span>
+                            <span class="detail-value">${node.metadata?.isRtl ? 'Right-to-Left ←' : 'Left-to-Right →'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Priority</span>
+                            <span class="detail-value">${node.metadata?.priority || 'N/A'}${node.metadata?.isPrimary ? ' (Primary)' : ''}</span>
+                        </div>
+                    `;
+                    break;
+                default:
+                    typeSpecificDetails = `
+                        <div class="detail-item">
+                            <span class="detail-label">Catalogs</span>
+                            <span class="detail-value">${node.metadata?.catalogCount || 0}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Items</span>
+                            <span class="detail-value">${node.metadata?.itemCount || 0}</span>
+                        </div>
+                    `;
+            }
+            
+            container.innerHTML = `
+                <div class="detail-card">
+                    <h3>
+                        <span>${node.icon}</span>
+                        ${node.name}
+                    </h3>
+                    
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="detail-label">Type</span>
+                            <span class="detail-value">${node.type.charAt(0).toUpperCase() + node.type.slice(1)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Code</span>
+                            <span class="detail-value">${node.metadata?.code || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Status</span>
+                            <span class="detail-value">
+                                <span class="status-badge status-${node.metadata?.status?.toLowerCase()}">
+                                    ${node.metadata?.status || 'Unknown'}
+                                </span>
+                            </span>
+                        </div>
+                        ${typeSpecificDetails}
+                    </div>
+
+                    ${node.metadata?.description ? `
+                    <div style="margin-top: 16px;">
+                        <span class="detail-label">Description</span>
+                        <div class="detail-value" style="margin-top: 4px;">${node.metadata.description}</div>
+                    </div>
+                    ` : ''}
+
+                    ${node.metadata?.complianceWarning ? `
+                    <div style="margin-top: 16px; padding: 8px; background: #fed7d7; border-radius: 6px; color: #742a2a;">
+                        <strong>⚠️ Compliance Warning:</strong> ${node.metadata.complianceWarning}
+                    </div>
+                    ` : ''}
+                </div>
+
+                ${complianceSection}
+
+                <div class="actions-section">
+                    <div class="actions-grid">
+                        <button class="btn btn-small" onclick="editNode('${node.id}')">
+                            <span>✏️</span> Edit
+                        </button>
+                        <button class="btn btn-secondary btn-small" onclick="duplicateNode('${node.id}')">
+                            <span>📋</span> Clone
+                        </button>
+                        ${node.type === 'country' ? `
+                        <button class="btn btn-small" onclick="addLocaleToCountry('${node.id}')">
+                            <span>➕</span> Add Locale
+                        </button>
+                        <button class="btn btn-small" onclick="setDefaultLocale('${node.id}')">
+                            <span>⭐</span> Set Default
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateComplianceSection(node) {
+            let riskLevel = 'medium';
+            let riskColor = 'medium';
+            let complianceDetails = [];
+
+            if (node.type === 'country') {
+                riskLevel = node.metadata?.complianceRisk?.toLowerCase() || 'medium';
+                
+                if (node.metadata?.hasSanctions) {
+                    complianceDetails.push('🚫 Trade sanctions in effect');
+                }
+                if (node.metadata?.hasExportRestrictions) {
+                    complianceDetails.push('📦 Export restrictions apply');
+                }
+                if (!node.metadata?.supportsShipping) {
+                    complianceDetails.push('⛔ Shipping not supported');
+                }
+                if (!node.metadata?.supportsBilling) {
+                    complianceDetails.push('💳 Billing not supported');
+                }
+            } else if (node.type === 'locale') {
+                riskLevel = node.metadata?.status === 'Restricted' ? 'high' : 'low';
+            }
+
+            riskColor = riskLevel;
+            
+            return `
+                <div class="compliance-section ${riskLevel}-risk">
+                    <div class="compliance-header">
+                        <span>${riskLevel === 'high' ? '🚨' : riskLevel === 'medium' ? '⚠️' : '✅'}</span>
+                        Compliance & Risk Assessment
+                        <span class="risk-indicator risk-${riskColor}">
+                            ${riskLevel.toUpperCase()} RISK
+                        </span>
+                    </div>
+                    
+                    ${complianceDetails.length > 0 ? `
+                    <div style="font-size: 14px; margin-bottom: 12px;">
+                        ${complianceDetails.map(detail => `<div>• ${detail}</div>`).join('')}
+                    </div>
+                    ` : ''}
+                    
+                    <div style="font-size: 13px; color: #4a5568;">
+                        ${riskLevel === 'high' ? 'Enhanced due diligence and comprehensive screening required.' :
+                          riskLevel === 'medium' ? 'Standard compliance screening recommended.' :
+                          'Standard processing with basic compliance checks.'}
+                    </div>
+                </div>
+            `;
+        }
+
+        function detectFromIp() {
+            const ipInput = document.getElementById('ip-input');
+            const ip = ipInput.value.trim();
+            
+            if (!ip) {
+                alert('Please enter an IP address');
+                return;
+            }
+
+            // Mock IP detection (in real implementation, this would call the API)
+            const detectedCountries = {
+                '8.8.8.8': 'country_us',
+                '1.1.1.1': 'country_us',
+                '192.168.1.1': 'country_us',
+                '94.23.': 'country_fr',
+                '217.160.': 'country_de',
+                '134.195.': 'country_jp'
+            };
+
+            let detectedCountryId = 'country_us'; // default
+            for (const [ipPattern, countryId] of Object.entries(detectedCountries)) {
+                if (ip.startsWith(ipPattern)) {
+                    detectedCountryId = countryId;
+                    break;
+                }
+            }
+
+            // Find and select the detected country
+            const detectedCountry = findNodeById(detectedCountryId);
+            if (detectedCountry) {
+                // Expand parent nodes
+                expandNodeParents(detectedCountryId);
+                renderTree();
+                
+                setTimeout(() => {
+                    selectNode(detectedCountry);
+                    
+                    // Scroll to the selected node
+                    const nodeElement = document.querySelector(`[data-node-id="${detectedCountryId}"]`);
+                    if (nodeElement) {
+                        nodeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 100);
+
+                alert(`🔍 IP ${ip} detected as: ${detectedCountry.name}\n\nDefault locale automatically selected: ${detectedCountry.children?.[0]?.name || 'None'}`);
+            }
+        }
+
+        function findNodeById(nodeId) {
+            function search(nodes) {
+                for (const node of nodes) {
+                    if (node.id === nodeId) return node;
+                    if (node.children) {
+                        const found = search(node.children);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            }
+            return search(treeData);
+        }
+
+        function expandNodeParents(nodeId) {
+            function findAndExpandParents(nodes, targetId, parents = []) {
+                for (const node of nodes) {
+                    const currentPath = [...parents, node];
+                    if (node.id === targetId) {
+                        // Expand all parents
+                        currentPath.forEach(n => n.expanded = true);
+                        return true;
+                    }
+                    if (node.children && findAndExpandParents(node.children, targetId, currentPath)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            findAndExpandParents(treeData, nodeId);
+        }
+
+        function filterTree(searchTerm) {
+            if (!searchTerm.trim()) {
+                treeData = JSON.parse(JSON.stringify(originalTreeData));
+                renderTree();
+                return;
+            }
+
+            searchTerm = searchTerm.toLowerCase();
+            
+            function filterNode(node) {
+                const nameMatch = node.name.toLowerCase().includes(searchTerm);
+                const codeMatch = node.metadata?.code?.toLowerCase().includes(searchTerm);
+                const nativeNameMatch = node.metadata?.nativeName?.toLowerCase().includes(searchTerm);
+                
+                const nodeMatches = nameMatch || codeMatch || nativeNameMatch;
+                
+                let filteredChildren = [];
+                if (node.children) {
+                    filteredChildren = node.children.map(filterNode).filter(child => child !== null);
+                }
+                
+                if (nodeMatches || filteredChildren.length > 0) {
+                    return {
+                        ...node,
+                        children: filteredChildren,
+                        expanded: true // Auto-expand matching nodes
+                    };
+                }
+                
+                return null;
+            }
+
+            treeData = originalTreeData.map(filterNode).filter(node => node !== null);
+            renderTree();
+        }
+
+        function expandAll() {
+            function expand(nodes) {
+                nodes.forEach(node => {
+                    node.expanded = true;
+                    if (node.children) expand(node.children);
+                });
+            }
+            expand(treeData);
+            renderTree();
+        }
+
+        function collapseAll() {
+            function collapse(nodes) {
+                nodes.forEach(node => {
+                    node.expanded = false;
+                    if (node.children) collapse(node.children);
+                });
+            }
+            collapse(treeData);
+            renderTree();
+        }
+
+        function refreshTree() {
+            document.getElementById('tree-container').innerHTML = '<div class="loading">Refreshing enhanced tree structure...</div>';
+            setTimeout(() => {
+                treeData = JSON.parse(JSON.stringify(mockEnhancedTreeData));
+                originalTreeData = JSON.parse(JSON.stringify(mockEnhancedTreeData));
+                renderTree();
+            }, 500);
+        }
+
+        // Action handlers
+        function addNode() {
+            alert('🚧 Add Node functionality would open a modal for creating new regions, countries, or locales with compliance validation.');
+        }
+
+        function editNode(nodeId) {
+            alert(`🚧 Edit Node ${nodeId} functionality would open a form with compliance and regulatory fields.`);
+        }
+
+        function duplicateNode(nodeId) {
+            alert(`🚧 Clone Node ${nodeId} would create a copy with modified properties and compliance inheritance.`);
+        }
+
+        function addLocaleToCountry(nodeId) {
+            alert(`🚧 Add Locale to ${nodeId} would show available locales with currency and priority assignment.`);
+        }
+
+        function setDefaultLocale(nodeId) {
+            alert(`🚧 Set Default Locale for ${nodeId} would allow selecting primary locale for auto-detection.`);
+        }
+
+        // Initialize the enhanced tree on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            treeData = JSON.parse(JSON.stringify(mockEnhancedTreeData));
+            originalTreeData = JSON.parse(JSON.stringify(mockEnhancedTreeData));
+            renderTree();
+            
+            // Auto-select France for demo
+            setTimeout(() => {
+                const franceNode = findNodeById('country_fr');
+                if (franceNode) {
+                    selectNode(franceNode);
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>

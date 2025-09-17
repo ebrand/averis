@@ -1,0 +1,32 @@
+# Development Dockerfile for Product MDM UI
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies (including dev dependencies for hot reload)
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Change ownership to non-root user
+RUN chown -R nextjs:nodejs /app
+USER nextjs
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:3000 || exit 1
+
+# Start development server with hot reload
+CMD ["npm", "run", "dev"]

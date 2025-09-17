@@ -1,0 +1,40 @@
+Project Overview:
+
+This is a project to simulate and prove conceptually the data flow of product, catalog, and pricing data in an e-commerce context. There will be three UIs (Product MDM, Pricing MDM, and the E-commerce Site). Each UI (React 19 with Tailwindcss) will have it's own API (Express) and database (PostgreSQL) instance. The Product MDM will publish messages to a RabbitMQ sever for products that have been "launched" (in the product MDM workflow) and the Pricing MDM and E-commerce apps will have Ingest servers that read messages from the RabbitMQ server and keep their copies of product data in sync.
+
+Project Folder Structure:
+
+The "cloud" folder should include any resources that are shared by all application (RabbitMQ, caching, etc.).
+
+commerce-ctx
+├── cloud
+├── ecommerce
+│ ├── api
+│ ├── database
+│ ├── ingest
+│ └── ui
+├── pricing-mdm
+│ ├── api
+│ ├── database
+│ ├── ingest
+│ └── ui
+└── product-mdm
+  ├── api
+  ├── database
+  └── ui
+
+Distributed Product Data Schema:
+
+The Product MDM will be the authoratative source of truth for product data and, as such, will have the most comprehensive data schema. The Pricing MDM application and the e-commerce site will store a subset of product schems; only the attributes required for their purposes: the Pricing MDM's definition of catalogs for availability and pricing by region and channel, and the presentation on the e-commerce website for user research and purchasing via a cart and purchase funnel.
+
+Roles for Access and Workflow Maintenance:
+
+The Product MDM application requires a user defined in Stytch to have the 'product_mdm' role. The Pricing MDM application requires the 'pricing_mdm' role.
+
+The Product MDM will employ a workflow in which five different roles or business units will be responsible for the completion of specific attributes in creating and maintaining a product definition. The five areas of distinct attribution (and their roles) are: Marketing ('product_marketing'), Legal ('product_legal'), Finance ('product_finance'), SalesOps ('product_salesops'), and Contracts ('product_contracts'). There are also separate roles for each area ('product_*_approve') with the added responsibility of 'approving' those attributes for launch. Once an approval is garnered for each area, the product can be launched (and thus messaged to downstream subscribers) by a user with the luanch role ('product_launch').
+
+Session Style:
+
+You are an expert in distributed, microservices architectures and React (Typescript), SQL, REST and HTML patterns in general. During the work session we will be using React (Typescript) for front-end development, Express for stand-alone servers and REST APIs. Coding standards should follow the Google Typescript Style Guide located here: https://google.github.io/styleguide/tsguide.html. README.md files should be created for all top-level folders describing the software contained therein, how to run it, on which port it runs and how to access it. Bash scripts should also be created to start ('start.sh') and stop ('stop.sh') various processes and services and stored in the same top-level folders.
+
+For key points in the architecture and development feel free to ecxplain what you ae doing and why. Don't feel the need to do this for everything soas to not waste tokens.

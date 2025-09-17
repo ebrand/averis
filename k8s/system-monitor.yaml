@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: system-monitor
+  namespace: commerce-dev
+  labels:
+    app: system-monitor
+    tier: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: system-monitor
+  template:
+    metadata:
+      labels:
+        app: system-monitor
+        tier: monitoring
+    spec:
+      containers:
+      - name: monitor
+        image: node:18-alpine
+        command: ["sh", "-c"]
+        args: ["npm install && npm start"]
+        workingDir: /app
+        ports:
+        - containerPort: 3006
+        env:
+        - name: PORT
+          value: "3006"
+        - name: DB_HOST
+          value: "postgresql-service"
+        - name: RABBITMQ_HOST
+          value: "rabbitmq-service"
+        volumeMounts:
+        - name: source-code
+          mountPath: /app
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: source-code
+        hostPath:
+          path: /Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/system-monitor
+          type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: system-monitor-service
+  namespace: commerce-dev
+spec:
+  selector:
+    app: system-monitor
+  ports:
+  - port: 3006
+    targetPort: 3006
+  type: NodePort

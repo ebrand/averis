@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Region-Locale Tree Management Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #1a365d;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 16px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 24px;
+        }
+
+        .tree-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+
+        .details-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .panel-header h2 {
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #3182ce;
+        }
+
+        .btn-secondary {
+            background: #718096;
+        }
+
+        .btn-secondary:hover {
+            background: #4a5568;
+        }
+
+        .tree {
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            padding: 4px 0;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .tree-node:hover {
+            background: #edf2f7;
+        }
+
+        .tree-node.selected {
+            background: #bee3f8;
+            color: #1a365d;
+        }
+
+        .tree-node.region {
+            font-weight: bold;
+            color: #2b6cb0;
+            margin: 8px 0 4px 0;
+        }
+
+        .tree-node.currency {
+            color: #38a169;
+            margin-left: 20px;
+        }
+
+        .tree-node.locale {
+            color: #805ad5;
+            margin-left: 40px;
+        }
+
+        .tree-icon {
+            margin-right: 8px;
+            font-size: 16px;
+            min-width: 20px;
+        }
+
+        .tree-expand {
+            cursor: pointer;
+            margin-right: 4px;
+            font-weight: bold;
+            color: #a0aec0;
+            transition: transform 0.2s;
+        }
+
+        .tree-expand.expanded {
+            transform: rotate(90deg);
+        }
+
+        .node-details {
+            margin-bottom: 20px;
+        }
+
+        .detail-card {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .detail-card h3 {
+            color: #2d3748;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            font-weight: 500;
+            color: #4a5568;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            color: #2d3748;
+            font-weight: 500;
+        }
+
+        .impact-analysis {
+            background: #fffbf0;
+            border: 1px solid #f6e05e;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .impact-analysis h4 {
+            color: #744210;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .impact-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .impact-stat {
+            text-align: center;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+        }
+
+        .impact-stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #744210;
+        }
+
+        .impact-stat-label {
+            font-size: 12px;
+            color: #975a16;
+        }
+
+        .operations {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-active {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-inactive {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <span>🌍</span>
+                Region-Locale Management
+            </h1>
+            <p>Hierarchical tree-based management of regions, currencies, and locales for global e-commerce</p>
+        </div>
+
+        <div class="main-content">
+            <div class="tree-panel">
+                <div class="panel-header">
+                    <h2><span>🌳</span> Hierarchy Tree</h2>
+                    <button class="btn" onclick="refreshTree()">
+                        <span>🔄</span> Refresh
+                    </button>
+                </div>
+                
+                <div id="tree-container">
+                    <div class="loading">Loading tree structure...</div>
+                </div>
+            </div>
+
+            <div class="details-panel">
+                <div class="panel-header">
+                    <h2><span>📊</span> Node Details</h2>
+                    <div>
+                        <button class="btn btn-secondary" onclick="addNode()">
+                            <span>➕</span> Add
+                        </button>
+                    </div>
+                </div>
+
+                <div id="details-container">
+                    <div class="detail-card">
+                        <p style="color: #718096; text-align: center; padding: 40px;">
+                            Select a node from the tree to view details
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSelectedNode = null;
+        let treeData = [];
+
+        // Mock data structure representing the hierarchical tree
+        const mockTreeData = [
+            {
+                id: 'region_americas',
+                name: 'Americas (AMER)',
+                type: 'region',
+                icon: '🌎',
+                expanded: true,
+                metadata: {
+                    code: 'AMER',
+                    description: 'North and South America region',
+                    catalogCount: 4,
+                    itemCount: 8,
+                    status: 'Active'
+                },
+                children: [
+                    {
+                        id: 'currency_usd',
+                        name: 'USD - US Dollar',
+                        type: 'currency',
+                        icon: '💵',
+                        expanded: true,
+                        metadata: {
+                            code: 'USD',
+                            symbol: '$',
+                            itemCount: 3,
+                            status: 'Active'
+                        },
+                        children: [
+                            {
+                                id: 'locale_en_us',
+                                name: 'English (United States)',
+                                type: 'locale',
+                                icon: '🇺🇸',
+                                metadata: {
+                                    code: 'en_US',
+                                    nativeName: 'English (United States)',
+                                    isRtl: false,
+                                    status: 'Active'
+                                }
+                            },
+                            {
+                                id: 'locale_es_mx',
+                                name: 'Spanish (Mexico)',
+                                type: 'locale',
+                                icon: '🇲🇽',
+                                metadata: {
+                                    code: 'es_MX',
+                                    nativeName: 'Español (México)',
+                                    isRtl: false,
+                                    status: 'Active'
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        id: 'currency_cad',
+                        name: 'CAD - Canadian Dollar',
+                        type: 'currency',
+                        icon: '💰',
+                        expanded: false,
+                        metadata: {
+                            code: 'CAD',
+                            symbol: 'C$',
+                            itemCount: 2,
+                            status: 'Active'
+                        },
+                        children: [
+                            {
+                                id: 'locale_en_ca',
+                                name: 'English (Canada)',
+                                type: 'locale',
+                                icon: '🇨🇦',
+                                metadata: {
+                                    code: 'en_CA',
+                                    nativeName: 'English (Canada)',
+                                    isRtl: false,
+                                    status: 'Active'
+                                }
+                            },
+                            {
+                                id: 'locale_fr_ca',
+                                name: 'French (Canada)',
+                                type: 'locale',
+                                icon: '🇨🇦',
+                                metadata: {
+                                    code: 'fr_CA',
+                                    nativeName: 'Français (Canada)',
+                                    isRtl: false,
+                                    status: 'Active'
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'region_emea',
+                name: 'Europe, Middle East & Africa (EMEA)',
+                type: 'region',
+                icon: '🌍',
+                expanded: false,
+                metadata: {
+                    code: 'EMEA',
+                    description: 'Europe, Middle East and Africa region',
+                    catalogCount: 2,
+                    itemCount: 12,
+                    status: 'Active'
+                },
+                children: [
+                    {
+                        id: 'currency_eur',
+                        name: 'EUR - Euro',
+                        type: 'currency',
+                        icon: '💶',
+                        expanded: false,
+                        metadata: {
+                            code: 'EUR',
+                            symbol: '€',
+                            itemCount: 8,
+                            status: 'Active'
+                        },
+                        children: [
+                            {
+                                id: 'locale_fr_fr',
+                                name: 'French (France) ⭐',
+                                type: 'locale',
+                                icon: '🇫🇷',
+                                metadata: {
+                                    code: 'fr_FR',
+                                    nativeName: 'Français (France)',
+                                    isRtl: false,
+                                    status: 'Active',
+                                    isPrimary: true
+                                }
+                            },
+                            {
+                                id: 'locale_de_de',
+                                name: 'German (Germany)',
+                                type: 'locale',
+                                icon: '🇩🇪',
+                                metadata: {
+                                    code: 'de_DE',
+                                    nativeName: 'Deutsch (Deutschland)',
+                                    isRtl: false,
+                                    status: 'Active'
+                                }
+                            },
+                            {
+                                id: 'locale_it_it',
+                                name: 'Italian (Italy)',
+                                type: 'locale',
+                                icon: '🇮🇹',
+                                metadata: {
+                                    code: 'it_IT',
+                                    nativeName: 'Italiano (Italia)',
+                                    isRtl: false,
+                                    status: 'Active'
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        function renderTree() {
+            const container = document.getElementById('tree-container');
+            container.innerHTML = '';
+
+            function renderNode(node, level = 0) {
+                const nodeElement = document.createElement('div');
+                
+                const hasChildren = node.children && node.children.length > 0;
+                const indent = '  '.repeat(level);
+                
+                nodeElement.innerHTML = `
+                    <div class="tree-node ${node.type}" data-node-id="${node.id}">
+                        ${hasChildren ? 
+                            `<span class="tree-expand ${node.expanded ? 'expanded' : ''}" data-node-id="${node.id}">▶</span>` : 
+                            '<span style="width: 16px; display: inline-block;"></span>'
+                        }
+                        <span class="tree-icon">${node.icon}</span>
+                        <span>${node.name}</span>
+                        ${node.metadata?.isPrimary ? ' ⭐' : ''}
+                        <span class="status-badge status-${node.metadata?.status?.toLowerCase()}" style="margin-left: auto; margin-right: 8px;">
+                            ${node.metadata?.status || 'Unknown'}
+                        </span>
+                    </div>
+                `;
+
+                // Add click handler for node selection
+                const nodeDiv = nodeElement.querySelector('.tree-node');
+                nodeDiv.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('tree-expand')) return;
+                    selectNode(node);
+                });
+
+                // Add click handler for expand/collapse
+                const expandButton = nodeElement.querySelector('.tree-expand');
+                if (expandButton) {
+                    expandButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleNode(node.id);
+                    });
+                }
+
+                container.appendChild(nodeElement);
+
+                // Render children if expanded
+                if (node.expanded && node.children) {
+                    node.children.forEach(child => renderNode(child, level + 1));
+                }
+            }
+
+            mockTreeData.forEach(node => renderNode(node));
+        }
+
+        function toggleNode(nodeId) {
+            function findAndToggle(nodes) {
+                for (let node of nodes) {
+                    if (node.id === nodeId) {
+                        node.expanded = !node.expanded;
+                        return true;
+                    }
+                    if (node.children && findAndToggle(node.children)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            findAndToggle(mockTreeData);
+            renderTree();
+        }
+
+        function selectNode(node) {
+            // Remove previous selection
+            document.querySelectorAll('.tree-node.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+
+            // Add selection to clicked node
+            document.querySelector(`[data-node-id="${node.id}"]`).classList.add('selected');
+            
+            currentSelectedNode = node;
+            renderNodeDetails(node);
+        }
+
+        function renderNodeDetails(node) {
+            const container = document.getElementById('details-container');
+            
+            const impactData = getImpactAnalysis(node);
+            
+            container.innerHTML = `
+                <div class="detail-card">
+                    <h3>
+                        <span>${node.icon}</span>
+                        ${node.name}
+                    </h3>
+                    
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="detail-label">Type</span>
+                            <span class="detail-value">${node.type.charAt(0).toUpperCase() + node.type.slice(1)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Code</span>
+                            <span class="detail-value">${node.metadata?.code || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Status</span>
+                            <span class="detail-value">
+                                <span class="status-badge status-${node.metadata?.status?.toLowerCase()}">
+                                    ${node.metadata?.status || 'Unknown'}
+                                </span>
+                            </span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Items</span>
+                            <span class="detail-value">${node.metadata?.itemCount || 0}</span>
+                        </div>
+                        ${node.metadata?.symbol ? `
+                        <div class="detail-item">
+                            <span class="detail-label">Symbol</span>
+                            <span class="detail-value">${node.metadata.symbol}</span>
+                        </div>
+                        ` : ''}
+                        ${node.metadata?.nativeName ? `
+                        <div class="detail-item">
+                            <span class="detail-label">Native Name</span>
+                            <span class="detail-value">${node.metadata.nativeName}</span>
+                        </div>
+                        ` : ''}
+                        ${node.metadata?.isRtl !== undefined ? `
+                        <div class="detail-item">
+                            <span class="detail-label">Text Direction</span>
+                            <span class="detail-value">${node.metadata.isRtl ? 'Right-to-Left' : 'Left-to-Right'}</span>
+                        </div>
+                        ` : ''}
+                        ${node.metadata?.catalogCount ? `
+                        <div class="detail-item">
+                            <span class="detail-label">Catalogs</span>
+                            <span class="detail-value">${node.metadata.catalogCount}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    ${node.metadata?.description ? `
+                    <div style="margin-top: 16px;">
+                        <span class="detail-label">Description</span>
+                        <div class="detail-value" style="margin-top: 4px;">${node.metadata.description}</div>
+                    </div>
+                    ` : ''}
+
+                    <div class="operations">
+                        <button class="btn" onclick="editNode('${node.id}')">
+                            <span>✏️</span> Edit
+                        </button>
+                        <button class="btn btn-secondary" onclick="duplicateNode('${node.id}')">
+                            <span>📋</span> Duplicate
+                        </button>
+                        ${node.type === 'region' ? `
+                        <button class="btn" onclick="addLocaleToRegion('${node.id}')">
+                            <span>➕</span> Add Locale
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <div class="impact-analysis">
+                    <h4>
+                        <span>⚠️</span>
+                        Impact Analysis
+                    </h4>
+                    
+                    <div class="impact-stats">
+                        <div class="impact-stat">
+                            <div class="impact-stat-value">${impactData.affectedCatalogs}</div>
+                            <div class="impact-stat-label">Catalogs</div>
+                        </div>
+                        <div class="impact-stat">
+                            <div class="impact-stat-value">${impactData.affectedProducts}</div>
+                            <div class="impact-stat-label">Products</div>
+                        </div>
+                        <div class="impact-stat">
+                            <div class="impact-stat-value">${impactData.estimatedCost}</div>
+                            <div class="impact-stat-label">Est. Cost</div>
+                        </div>
+                        <div class="impact-stat">
+                            <div class="impact-stat-value">${impactData.estimatedTime}</div>
+                            <div class="impact-stat-label">Est. Time</div>
+                        </div>
+                    </div>
+                    
+                    <div style="font-size: 14px; color: #975a16;">
+                        Changes to this ${node.type} will affect ${impactData.affectedCatalogs} catalogs and require localization of ${impactData.affectedProducts} products.
+                    </div>
+                </div>
+            `;
+        }
+
+        function getImpactAnalysis(node) {
+            // Mock impact analysis based on node type and metadata
+            const base = {
+                affectedCatalogs: node.metadata?.catalogCount || 0,
+                affectedProducts: 0,
+                estimatedCost: '$0',
+                estimatedTime: '0 min'
+            };
+
+            switch (node.type) {
+                case 'region':
+                    return {
+                        affectedCatalogs: node.metadata?.catalogCount || 0,
+                        affectedProducts: (node.metadata?.catalogCount || 0) * 1247,
+                        estimatedCost: '$' + ((node.metadata?.catalogCount || 0) * 2450).toLocaleString(),
+                        estimatedTime: (node.metadata?.catalogCount || 0) * 2 + '-' + (node.metadata?.catalogCount || 0) * 3 + ' hrs'
+                    };
+                case 'currency':
+                    return {
+                        affectedCatalogs: 2,
+                        affectedProducts: 1336,
+                        estimatedCost: '$2,628',
+                        estimatedTime: '3-4 hrs'
+                    };
+                case 'locale':
+                    return {
+                        affectedCatalogs: 1,
+                        affectedProducts: 89,
+                        estimatedCost: '$178',
+                        estimatedTime: '30 min'
+                    };
+                default:
+                    return base;
+            }
+        }
+
+        function refreshTree() {
+            document.getElementById('tree-container').innerHTML = '<div class="loading">Refreshing tree structure...</div>';
+            setTimeout(() => {
+                renderTree();
+            }, 500);
+        }
+
+        function addNode() {
+            alert('🚧 Add Node functionality would open a modal dialog for creating new regions, currencies, or locales.');
+        }
+
+        function editNode(nodeId) {
+            alert(`🚧 Edit Node ${nodeId} functionality would open a form for editing node properties.`);
+        }
+
+        function duplicateNode(nodeId) {
+            alert(`🚧 Duplicate Node ${nodeId} functionality would create a copy with modified properties.`);
+        }
+
+        function addLocaleToRegion(nodeId) {
+            alert(`🚧 Add Locale to ${nodeId} would open a locale selection dialog with impact preview.`);
+        }
+
+        // Initialize the tree on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            renderTree();
+            
+            // Auto-select the first node for demo purposes
+            setTimeout(() => {
+                selectNode(mockTreeData[0]);
+            }, 100);
+        });
+    </script>
+</body>
+</html>

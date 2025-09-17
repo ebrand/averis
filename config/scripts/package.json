@@ -1,0 +1,15 @@
+{
+  "name": "commerce-ctx-config-validation",
+  "version": "1.0.0",
+  "description": "Configuration validation scripts for Commerce Context project",
+  "scripts": {
+    "validate": "node validate-dev-config.js",
+    "validate:dev": "node validate-dev-config.js",
+    "help": "echo 'Available scripts:\n  npm run validate - Validate development environment configuration\n  npm run validate:dev - Same as validate'"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "keywords": ["configuration", "validation", "commerce-ctx"],
+  "author": "Commerce Context Team"
+}

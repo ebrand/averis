@@ -1,0 +1,479 @@
+# ========================================
+# COMMERCE CONTEXT - DEVELOPMENT ENVIRONMENT
+# ========================================
+# This file defines all service configurations, ports, and dependencies
+# for the development environment. It serves as the single source of truth
+# for all integration points and prevents configuration drift.
+
+environment: development
+version: "1.0.0"
+updated: "2025-08-24"
+
+# ========================================
+# DATABASE CONFIGURATION
+# ========================================
+database:
+  host: localhost
+  port: 5432
+  name: commerce_db
+  user: postgres
+  password: postgres
+  
+  # Schema Information - Averis Platform Architecture
+  schemas:
+    averis_system:
+      description: "Averis platform system management schema"
+      owner_service: "system-management"
+      tables:
+        users:
+          description: "Consolidated platform users (employees and system accounts)"
+          columns:
+            - id (SERIAL PRIMARY KEY)
+            - stytch_user_id (VARCHAR(255) UNIQUE NOT NULL)
+            - first_name (VARCHAR(100) NOT NULL)
+            - last_name (VARCHAR(100) NOT NULL)
+            - email (VARCHAR(255) UNIQUE NOT NULL)
+            - roles (TEXT[] DEFAULT ARRAY['user'])
+            - status (VARCHAR(50) DEFAULT 'active')
+            - last_login (TIMESTAMP WITH TIME ZONE)
+            - mfa_enabled (BOOLEAN DEFAULT false)
+            - preferences (JSONB DEFAULT '{}')
+            - profile_data (JSONB DEFAULT '{}')
+            - created_at (TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP)
+            - updated_at (TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP)
+            - created_by (VARCHAR(255))
+            - updated_by (VARCHAR(255))
+        data_dictionary:
+          description: "System-wide data field definitions and metadata"
+        audit_logs:
+          description: "Cross-system audit trail"
+        system_settings:
+          description: "Platform configuration settings"
+        user_customer_correlations:
+          description: "Links between internal users and customer accounts"
+    
+    averis_customer:
+      description: "Averis customer lifecycle management schema"
+      owner_service: "customer-mdm"
+      tables:
+        customers:
+          description: "Customer data with graduated disclosure (Cold->Warm->Hot)"
+          columns:
+            - id (UUID PRIMARY KEY)
+            - disclosure_level (VARCHAR(20) - cold/warm/hot)
+            - visitor_flag (BOOLEAN DEFAULT true)
+            - visitor_cookie (VARCHAR(255) UNIQUE)
+            - session_data (JSONB - cart, telemetry)
+            - first_name (VARCHAR(100) - warm level)
+            - last_name (VARCHAR(100) - warm level)
+            - email (VARCHAR(255) - warm level)
+            - stytch_user_id (VARCHAR(255) - hot level)
+            - billing_address (JSONB)
+            - customer_segment (VARCHAR(50))
+            - marketing_consent (BOOLEAN)
+            - status (VARCHAR(50))
+    
+    averis_product:
+      description: "Averis product master data management schema"
+      owner_service: "product-mdm-api"
+      tables:
+        products:
+          description: "Master product data with hybrid relational/JSONB design"
+        categories:
+          description: "Product categories hierarchy"
+        attributes:
+          description: "Product attribute definitions"
+        product_variants:
+          description: "Product size/color/configuration variants"
+    
+    averis_product_staging:
+      description: "Averis read-optimized product data cache"
+      owner_service: "product-staging-api"
+      tables:
+        products:
+          description: "Synchronized product data for query optimization"
+    
+    averis_pricing:
+      description: "Averis pricing and catalog management schema"
+      owner_service: "pricing-mdm-api"
+      tables:
+        catalogs:
+          description: "Product catalogs for different markets/channels"
+        catalog_products:
+          description: "Products included in specific catalogs"
+        base_prices:
+          description: "Base pricing data by region and currency"
+        currencies:
+          description: "Supported currencies"
+        regions:
+          description: "Geographic regions for pricing"
+    
+    averis_ecomm:
+      description: "Averis e-commerce application schema"
+      owner_service: "ecommerce-api"
+      tables:
+        products:
+          description: "Customer-facing product catalog"
+        categories:
+          description: "E-commerce navigation categories"
+        orders:
+          description: "Customer orders and transactions"
+        reviews:
+          description: "Customer product reviews"
+
+# ========================================
+# SERVICE CONFIGURATION
+# ========================================
+services:
+  
+  # Product MDM Services
+  product-mdm-api:
+    name: "Product MDM API"
+    description: "Master Data Management API for product data"
+    type: "api"
+    port: 6001
+    path: "/Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/product-mdm/api"
+    start_command: "npm start"
+    
+    environment:
+      PORT: 6001
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: commerce_db
+      DB_SCHEMA: averis_product
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    
+    endpoints:
+      - "GET /api/products"
+      - "POST /api/products"
+      - "PUT /api/products/:id"
+      - "DELETE /api/products/:id"
+      - "GET /api/users"
+      - "POST /api/users"
+      - "PUT /api/users/:id"
+      - "DELETE /api/users/:id"
+      - "GET /health"
+    
+    dependencies:
+      - database
+      - rabbitmq
+    
+    publishes_to:
+      - "product.launched"
+      - "product.updated"
+  
+  product-mdm-ui:
+    name: "Product MDM User Interface"
+    description: "React-based UI for product management"
+    type: "ui"
+    port: 3001
+    path: "/Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/product-mdm/ui"
+    start_command: "npm run dev"
+    
+    environment:
+      PORT: 3001
+      VITE_API_BASE_URL: "http://localhost:6001/api"
+      VITE_USE_MOCK_DATA: false
+      VITE_API_FALLBACK_ENABLED: false
+      VITE_FORCE_API_USAGE: true
+      VITE_DB_HOST: localhost
+      VITE_DB_PORT: 5432
+      VITE_DB_NAME: commerce_db
+      VITE_DB_USER: postgres
+      VITE_DB_PASSWORD: postgres
+    
+    dependencies:
+      - product-mdm-api
+    
+    urls:
+      - "http://localhost:3001"
+      - "http://localhost:3001/login"
+      - "http://localhost:3001/profile"
+      - "http://localhost:3001/products"
+  
+  # Pricing MDM Services
+  pricing-mdm-api:
+    name: "Pricing MDM API"
+    description: "API for pricing and catalog management"
+    type: "api"
+    port: 6002
+    path: "/Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/pricing-mdm/api"
+    start_command: "npm start"
+    
+    environment:
+      PORT: 6002
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: commerce_db
+      DB_SCHEMA: averis_pricing
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    
+    endpoints:
+      - "GET /api/products"
+      - "GET /api/catalogs"
+      - "GET /api/users"
+    
+    dependencies:
+      - database
+    
+    consumes_from:
+      - "product.launched"
+      - "product.updated"
+  
+  pricing-mdm-ingest:
+    name: "Pricing MDM Ingest Server"
+    description: "Message consumer for product data synchronization"
+    type: "ingest"
+    port: 9002
+    path: "/Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/pricing-mdm/ingest"
+    start_command: "npm start"
+    
+    environment:
+      PORT: 9002
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: commerce_db
+      DB_SCHEMA: averis_pricing
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    
+    dependencies:
+      - database
+      - rabbitmq
+    
+    consumes_from:
+      - "product.launched"
+      - "product.updated"
+  
+  # E-commerce Services
+  ecommerce-api:
+    name: "E-commerce API"
+    description: "Customer-facing e-commerce API"
+    type: "api"
+    port: 6003
+    path: "/Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/ecommerce/api"
+    start_command: "npm start"
+    
+    environment:
+      PORT: 6003
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: commerce_db
+      DB_SCHEMA: averis_ecomm
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      PRICING_MDM_API_URL: "http://localhost:6002"
+    
+    endpoints:
+      - "GET /api/products"
+      - "GET /api/catalogs"
+      - "POST /api/reviews"
+    
+    dependencies:
+      - database
+      - pricing-mdm-api
+  
+  ecommerce-ingest:
+    name: "E-commerce Ingest Server"
+    description: "Product synchronization for e-commerce catalog"
+    type: "ingest"
+    port: 9003
+    path: "/Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/ecommerce/ingest"
+    start_command: "npm start"
+    
+    environment:
+      PORT: 9003
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: commerce_db
+      DB_SCHEMA: averis_ecomm
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      WEBSOCKET_PORT: 8087
+    
+    dependencies:
+      - database
+      - rabbitmq
+    
+    consumes_from:
+      - "product.launched"
+      - "product.updated"
+  
+  ecommerce-ui:
+    name: "E-commerce User Interface"
+    description: "Customer-facing e-commerce website"
+    type: "ui"
+    port: 3002
+    path: "/Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/ecommerce/ui"
+    start_command: "npm run dev"
+    
+    environment:
+      PORT: 3002
+    
+    dependencies:
+      - ecommerce-api
+  
+  # System Monitoring
+  system-monitor:
+    name: "System Monitor"
+    description: "System monitoring and process management"
+    type: "monitor"
+    port: 3006
+    path: "/Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/system-monitor"
+    start_command: "npm start"
+    
+    environment:
+      PORT: 3006
+    
+    dependencies:
+      - product-mdm-api
+      - pricing-mdm-api
+      - ecommerce-api
+
+# ========================================
+# INFRASTRUCTURE SERVICES
+# ========================================
+infrastructure:
+  database:
+    name: "PostgreSQL"
+    type: "database"
+    port: 5432
+    host: localhost
+    docker_compose: "/Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/cloud/database/docker-compose.yml"
+    
+    health_check:
+      command: "pg_isready -h localhost -p 5432"
+      timeout: 30
+  
+  rabbitmq:
+    name: "RabbitMQ Message Broker"
+    type: "message_broker"
+    port: 5672
+    management_port: 15672
+    host: localhost
+    docker_compose: "/Users/eric.brand/Documents/source/github/Eric-Brand_swi/eb/commerce-ctx/cloud/docker-compose.yml"
+    
+    queues:
+      - "product.launched"
+      - "product.updated"
+    
+    health_check:
+      url: "http://localhost:15672/api/overview"
+      timeout: 30
+
+# ========================================
+# PORT ALLOCATION MAP
+# ========================================
+ports:
+  # Application Services
+  3001: "Product UI (Vite Dev Server)"
+  3002: "N/A"
+  3003: "Pricing UI (Vite Dev Server)"
+  3004: "E-commerce UI (Vite Dev Server)"
+  3005: "N/A (Inventory UI)"
+  3006: "N/A (ERP UI)"
+  3007: "N/A (Customer UI)"
+  3012: "Dashboard (main app entry - Vite Dev Server)"
+  
+  # API Services
+  6001: "Product API (.net)"
+  6002: "Product Staging API (.net)"
+  6003: "Pricing API (.net)"
+  6004: "E-commerce API (.net)"
+  6005: "N/A (Inventory API)"
+  6006: "N/A (ERP API)"
+  6007: "Customer API (.net)"
+  6012: "N/A (Dashboard API)"
+  
+  # Ingest Services
+  9002: "Product Staging Ingest"
+  
+  # Infrastructure
+  5432: "PostgreSQL Database"
+  5672: "RabbitMQ AMQP"
+  15672: "RabbitMQ Management Interface"
+  
+  # WebSocket Services
+  8087: "E-commerce WebSocket Notifications"
+
+# ========================================
+# SERVICE DEPENDENCIES GRAPH
+# ========================================
+dependency_graph:
+  # Level 1: Infrastructure (no dependencies)
+  level_1:
+    - database
+    - rabbitmq
+  
+  # Level 2: Core APIs (depend on infrastructure)
+  level_2:
+    - product-mdm-api
+    - pricing-mdm-api
+    - ecommerce-api
+  
+  # Level 3: Ingest Services (depend on APIs and infrastructure)
+  level_3:
+    - pricing-mdm-ingest
+    - ecommerce-ingest
+  
+  # Level 4: User Interfaces (depend on APIs)
+  level_4:
+    - product-mdm-ui
+    - ecommerce-ui
+    - system-monitor
+
+# ========================================
+# INTEGRATION VALIDATION RULES
+# ========================================
+validation_rules:
+  api_connectivity:
+    - "product-mdm-ui must be able to reach product-mdm-api on port 6001"
+    - "ecommerce-api must be able to reach pricing-mdm-api on port 6002"
+  
+  database_schema:
+    - "product_mdm.users table must NOT have created_by or updated_by columns"
+    - "pricing_mdm.users table must NOT have created_by or updated_by columns"
+    - "All user tables must have: id, stytch_user_id, first_name, last_name, email, roles, status"
+  
+  message_queues:
+    - "product-mdm-api must be able to publish to RabbitMQ on port 5672"
+    - "pricing-mdm-ingest must be able to consume from product.launched queue"
+    - "ecommerce-ingest must be able to consume from product.launched queue"
+
+# ========================================
+# COMMON ISSUES & RESOLUTIONS
+# ========================================
+known_issues:
+  port_conflicts:
+    description: "UI services trying to call APIs on wrong ports"
+    prevention: "Validate VITE_API_BASE_URL matches actual API port in this config"
+    
+  database_schema_mismatch:
+    description: "API code referencing non-existent database columns"
+    prevention: "Validate API models match actual database schema defined here"
+    
+  authentication_token_management:
+    description: "API client not receiving authentication tokens"
+    prevention: "Ensure apiClient.setAuthToken() is called during login/logout"
+
+# ========================================
+# DEVELOPMENT SCRIPTS
+# ========================================
+scripts:
+  start_all:
+    description: "Start all services in dependency order"
+    command: "./scripts/start-dev-environment.sh"
+    
+  validate_config:
+    description: "Validate all service configurations match this file"
+    command: "node scripts/validate-dev-config.js"
+    
+  health_check:
+    description: "Check health of all running services"
+    command: "node scripts/health-check.js"
+    
+  reset_database:
+    description: "Reset database to clean state"
+    command: "cd cloud/database && docker-compose down && docker-compose up -d"

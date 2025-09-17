@@ -1,0 +1,99 @@
+# Traefik Dynamic Configuration
+# Custom middleware and advanced routing rules
+
+http:
+  # Middleware definitions
+  middlewares:
+    # Security headers
+    security-headers:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        accessControlAllowOriginList:
+          - "http://localhost:3001"  # Product MDM UI
+          - "http://localhost:3003"  # Pricing MDM UI  
+          - "http://localhost:3004"  # E-commerce UI
+          - "http://localhost:3007"  # Customer MDM UI
+          - "http://localhost:3012"  # Commerce Dashboard UI
+          - "http://product-mdm.localhost"
+          - "http://pricing-mdm.localhost"
+          - "http://ecommerce.localhost"
+          - "http://customer-mdm.localhost"
+          - "http://dashboard.localhost"
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+          - "X-Requested-With"
+        accessControlMaxAge: 100
+        addVaryHeader: true
+        customRequestHeaders:
+          X-Forwarded-Proto: "http"
+
+    # API rate limiting  
+    api-rate-limit:
+      rateLimit:
+        burst: 100
+        average: 50
+
+    # API authentication (placeholder for future implementation)
+    api-auth:
+      basicAuth:
+        users:
+          - "admin:$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi" # password
+
+    # Compression
+    compression:
+      gzip: {}
+
+
+  # Custom routers (if needed for complex routing)
+  routers:
+
+    # API Gateway router - catches all /api requests
+    api-gateway:
+      rule: "Host(`api.localhost`) && PathPrefix(`/api`)"
+      service: "noop@internal"
+      middlewares:
+        - "security-headers"
+        - "compression"
+        - "api-rate-limit"
+      priority: 1
+
+    # Health check aggregator (optional)
+    health-aggregator:
+      rule: "Host(`health.localhost`)"
+      service: "noop@internal"
+      middlewares:
+        - "security-headers"
+
+  # Services (if needed for load balancing or custom backends)
+  services:
+
+    # Example: Load balancer for multiple API instances
+    product-mdm-cluster:
+      loadBalancer:
+        servers:
+          - url: "http://product-mdm-api:6001"
+        healthCheck:
+          path: "/api/products/health"
+          interval: "30s"
+          timeout: "10s"
+
+# TCP routers (for non-HTTP services like databases)
+tcp:
+  routers:
+    postgres-router:
+      rule: "HostSNI(`*`)"
+      service: "postgres-service"
+      entryPoints:
+        - "postgres"
+
+  services:
+    postgres-service:
+      loadBalancer:
+        servers:
+          - address: "postgres:5432"

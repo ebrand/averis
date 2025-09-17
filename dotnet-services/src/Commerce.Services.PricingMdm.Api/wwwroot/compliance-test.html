@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Compliance Screening Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+        
+        .test-section h2 {
+            color: #495057;
+            margin-top: 0;
+        }
+        
+        .form-group {
+            margin: 15px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            background: white;
+        }
+        
+        .risk-high { border-left: 4px solid #dc3545; background: #f8d7da; }
+        .risk-medium { border-left: 4px solid #ffc107; background: #fff3cd; }
+        .risk-low { border-left: 4px solid #28a745; background: #d1eddb; }
+        .risk-unknown { border-left: 4px solid #6c757d; background: #e2e3e5; }
+        
+        .match-item {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 3px solid #007bff;
+        }
+        
+        .recommendations {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        
+        .recommendations ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        
+        .quick-test {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .quick-test button {
+            font-size: 14px;
+            padding: 8px 12px;
+        }
+        
+        .api-info {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Export Compliance Screening</h1>
+        
+        <div class="api-info">
+            <strong>🔗 API Status:</strong> Connected to US Trade.gov Consolidated Screening List<br>
+            <strong>📊 Data Sources:</strong> 11 Federal Agency Lists (OFAC, BIS, State Dept, etc.)<br>
+            <strong>🔄 Updates:</strong> Hourly from federal agencies
+        </div>
+
+        <!-- Country Screening -->
+        <div class="test-section">
+            <h2>🌍 Country Compliance Screening</h2>
+            <p>Screen countries against export compliance and sanctions lists</p>
+            
+            <div class="form-group">
+                <label for="countryCode">Country Code (ISO 2-letter):</label>
+                <input type="text" id="countryCode" placeholder="e.g., US, IR, RU, CN" maxlength="2">
+            </div>
+            
+            <div class="form-group">
+                <label for="countryName">Country Name (optional):</label>
+                <input type="text" id="countryName" placeholder="e.g., United States, Iran, Russia">
+            </div>
+            
+            <button onclick="screenCountry()">🔍 Screen Country</button>
+            
+            <div class="quick-test">
+                <button onclick="quickScreenCountry('US', 'United States')">🇺🇸 Test USA</button>
+                <button onclick="quickScreenCountry('IR', 'Iran')">🇮🇷 Test Iran (High Risk)</button>
+                <button onclick="quickScreenCountry('RU', 'Russia')">🇷🇺 Test Russia (High Risk)</button>
+                <button onclick="quickScreenCountry('KP', 'North Korea')">🇰🇵 Test North Korea (High Risk)</button>
+                <button onclick="quickScreenCountry('DE', 'Germany')">🇩🇪 Test Germany (Low Risk)</button>
+                <button onclick="quickScreenCountry('CA', 'Canada')">🇨🇦 Test Canada (Low Risk)</button>
+            </div>
+            
+            <div id="countryResult"></div>
+        </div>
+
+        <!-- Entity Screening -->
+        <div class="test-section">
+            <h2>🏢 Entity Compliance Screening</h2>
+            <p>Screen companies, individuals, or vessels against compliance lists</p>
+            
+            <div class="form-group">
+                <label for="entityName">Entity Name:</label>
+                <input type="text" id="entityName" placeholder="e.g., Company Name, Person Name, Vessel Name">
+            </div>
+            
+            <div class="form-group">
+                <label for="entityCountry">Country Code (optional):</label>
+                <input type="text" id="entityCountry" placeholder="e.g., US, IR, RU" maxlength="2">
+            </div>
+            
+            <button onclick="screenEntity()">🔍 Screen Entity</button>
+            
+            <div class="quick-test">
+                <button onclick="quickScreenEntity('Sberbank', 'RU')">🏦 Test Sberbank (Russian Bank)</button>
+                <button onclick="quickScreenEntity('Huawei', 'CN')">📱 Test Huawei (Chinese Tech)</button>
+                <button onclick="quickScreenEntity('Microsoft', 'US')">💻 Test Microsoft (US Tech)</button>
+            </div>
+            
+            <div id="entityResult"></div>
+        </div>
+
+        <!-- Regional Risk Assessment -->
+        <div class="test-section">
+            <h2>🗺️ Regional Risk Assessment</h2>
+            <p>Assess overall compliance risk for entire regions</p>
+            
+            <div class="form-group">
+                <label for="regionCode">Region:</label>
+                <select id="regionCode">
+                    <option value="">Select a region...</option>
+                    <option value="AMER">Americas (AMER)</option>
+                    <option value="EMEA">Europe, Middle East & Africa (EMEA)</option>
+                    <option value="APJ">Asia Pacific & Japan (APJ)</option>
+                </select>
+            </div>
+            
+            <button onclick="assessRegion()">📊 Assess Regional Risk</button>
+            
+            <div id="regionResult"></div>
+        </div>
+
+        <!-- Compliance Alerts -->
+        <div class="test-section">
+            <h2>🚨 Active Compliance Alerts</h2>
+            <p>View current compliance alerts and high-risk detections</p>
+            
+            <button onclick="getAlerts()">📋 Get Active Alerts</button>
+            
+            <div id="alertsResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:6003/api';
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${url}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('API Request failed:', error);
+                throw error;
+            }
+        }
+
+        function showLoading(elementId) {
+            document.getElementById(elementId).innerHTML = '<div class="loading">🔄 Screening in progress...</div>';
+        }
+
+        function showError(elementId, error) {
+            document.getElementById(elementId).innerHTML = `
+                <div class="error">
+                    <strong>❌ Error:</strong> ${error.message || error}
+                </div>
+            `;
+        }
+
+        function formatComplianceResult(result) {
+            const riskClass = `risk-${result.riskLevel.toLowerCase()}`;
+            const riskIcon = {
+                'High': '🔴',
+                'Medium': '🟡', 
+                'Low': '🟢',
+                'Unknown': '⚪'
+            }[result.riskLevel] || '⚪';
+
+            let html = `
+                <div class="result ${riskClass}">
+                    <h3>${riskIcon} ${result.entitySearched} - ${result.riskLevel} Risk</h3>
+                    <p><strong>Total Matches:</strong> ${result.totalMatches}</p>
+                    <p><strong>Has Sanctions:</strong> ${result.hasSanctions ? '⚠️ Yes' : '✅ No'}</p>
+                    <p><strong>Export Restrictions:</strong> ${result.hasExportRestrictions ? '⚠️ Yes' : '✅ No'}</p>
+                    <p><strong>Screened:</strong> ${new Date(result.screenedAt).toLocaleString()}</p>
+            `;
+
+            if (result.matches && result.matches.length > 0) {
+                html += '<h4>🔍 Screening Matches:</h4>';
+                result.matches.forEach(match => {
+                    html += `
+                        <div class="match-item">
+                            <strong>${match.name}</strong><br>
+                            <small>Source: ${match.source}</small><br>
+                            ${match.startDate ? `<small>Start Date: ${match.startDate}</small>` : ''}
+                            ${match.score ? `<small>Match Score: ${match.score}</small>` : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            if (result.recommendations && result.recommendations.length > 0) {
+                html += `
+                    <div class="recommendations">
+                        <h4>💡 Recommendations:</h4>
+                        <ul>
+                            ${result.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        async function screenCountry() {
+            const countryCode = document.getElementById('countryCode').value.trim().toUpperCase();
+            const countryName = document.getElementById('countryName').value.trim();
+
+            if (!countryCode) {
+                alert('Please enter a country code');
+                return;
+            }
+
+            showLoading('countryResult');
+
+            try {
+                const url = `/compliance/screen/country/${countryCode}${countryName ? `?countryName=${encodeURIComponent(countryName)}` : ''}`;
+                const result = await makeRequest(url);
+                document.getElementById('countryResult').innerHTML = formatComplianceResult(result);
+            } catch (error) {
+                showError('countryResult', error);
+            }
+        }
+
+        async function quickScreenCountry(code, name) {
+            document.getElementById('countryCode').value = code;
+            document.getElementById('countryName').value = name;
+            await screenCountry();
+        }
+
+        async function screenEntity() {
+            const entityName = document.getElementById('entityName').value.trim();
+            const countryCode = document.getElementById('entityCountry').value.trim().toUpperCase();
+
+            if (!entityName) {
+                alert('Please enter an entity name');
+                return;
+            }
+
+            showLoading('entityResult');
+
+            try {
+                const body = {
+                    entityName: entityName,
+                    countryCode: countryCode || null
+                };
+
+                const result = await makeRequest('/compliance/screen/entity', {
+                    method: 'POST',
+                    body: JSON.stringify(body)
+                });
+
+                document.getElementById('entityResult').innerHTML = formatComplianceResult(result);
+            } catch (error) {
+                showError('entityResult', error);
+            }
+        }
+
+        async function quickScreenEntity(name, country) {
+            document.getElementById('entityName').value = name;
+            document.getElementById('entityCountry').value = country;
+            await screenEntity();
+        }
+
+        async function assessRegion() {
+            const regionCode = document.getElementById('regionCode').value;
+
+            if (!regionCode) {
+                alert('Please select a region');
+                return;
+            }
+
+            showLoading('regionResult');
+
+            try {
+                const result = await makeRequest(`/compliance/assess/region/${regionCode}`);
+                
+                let html = `
+                    <div class="result risk-${result.overallRisk.toLowerCase()}">
+                        <h3>🗺️ Regional Risk Assessment: ${regionCode}</h3>
+                        <p><strong>Overall Risk:</strong> ${result.overallRisk}</p>
+                        <p><strong>Countries Assessed:</strong> ${result.countriesAssessed}</p>
+                        <p><strong>High Risk Countries:</strong> ${result.highRiskCountries}</p>
+                        <p><strong>Medium Risk Countries:</strong> ${result.mediumRiskCountries}</p>
+                        <p><strong>Total Sanction Matches:</strong> ${result.totalSanctionMatches}</p>
+                        <p><strong>Assessed:</strong> ${new Date(result.assessedAt).toLocaleString()}</p>
+                `;
+
+                if (result.countryDetails && result.countryDetails.length > 0) {
+                    html += '<h4>📊 Country Details:</h4>';
+                    result.countryDetails.forEach(country => {
+                        const riskIcon = {
+                            'High': '🔴',
+                            'Medium': '🟡',
+                            'Low': '🟢'
+                        }[country.riskLevel] || '⚪';
+                        
+                        html += `
+                            <div class="match-item">
+                                ${riskIcon} <strong>${country.countryName}</strong> - ${country.riskLevel} Risk<br>
+                                <small>Matches: ${country.matchCount} | Sanctions: ${country.hasSanctions ? 'Yes' : 'No'}</small>
+                            </div>
+                        `;
+                    });
+                }
+
+                html += '</div>';
+                document.getElementById('regionResult').innerHTML = html;
+            } catch (error) {
+                showError('regionResult', error);
+            }
+        }
+
+        async function getAlerts() {
+            showLoading('alertsResult');
+
+            try {
+                const alerts = await makeRequest('/compliance/alerts');
+                
+                let html = '<div class="result">';
+                
+                if (alerts.length === 0) {
+                    html += '<p>✅ No active compliance alerts</p>';
+                } else {
+                    html += `<h3>🚨 Active Alerts (${alerts.length})</h3>`;
+                    alerts.forEach(alert => {
+                        const severityIcon = {
+                            'High': '🔴',
+                            'Medium': '🟡',
+                            'Low': '🟢'
+                        }[alert.severity] || '⚪';
+                        
+                        html += `
+                            <div class="match-item">
+                                ${severityIcon} <strong>${alert.type}</strong><br>
+                                ${alert.message}<br>
+                                <small>Country: ${alert.country} | Created: ${new Date(alert.createdAt).toLocaleString()}</small>
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += '</div>';
+                document.getElementById('alertsResult').innerHTML = html;
+            } catch (error) {
+                showError('alertsResult', error);
+            }
+        }
+
+        // Auto-focus first input
+        document.getElementById('countryCode').focus();
+    </script>
+</body>
+</html>
