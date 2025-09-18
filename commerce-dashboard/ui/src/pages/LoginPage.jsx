@@ -71,7 +71,7 @@ export const LoginPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Signing you in...</p>
         </div>
       </div>
@@ -115,7 +115,7 @@ export const LoginPage = () => {
               <button
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
-                className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -151,7 +151,7 @@ export const LoginPage = () => {
               <button 
                 type="button"
                 onClick={() => window.open('/terms-of-service', '_blank')}
-                className="text-teal-600 hover:text-teal-500 underline"
+                className="text-blue-600 hover:text-blue-500 underline"
               >
                 Terms of Service
               </button>{' '}
@@ -159,7 +159,7 @@ export const LoginPage = () => {
               <button 
                 type="button"
                 onClick={() => window.open('/privacy-policy', '_blank')}
-                className="text-teal-600 hover:text-teal-500 underline"
+                className="text-blue-600 hover:text-blue-500 underline"
               >
                 Privacy Policy
               </button>
@@ -189,7 +189,7 @@ export const LoginPage = () => {
       </div>
 
       {/* Right side - Features showcase */}
-      <div className="hidden lg:block relative w-0 flex-1 bg-gradient-to-br from-teal-600 to-teal-800">
+      <div className="hidden lg:block relative w-0 flex-1 bg-gradient-to-br from-blue-600 to-blue-800">
         <div className="absolute inset-0 bg-black bg-opacity-10"></div>
         <div className="relative h-full flex flex-col px-12">
           {/* Main content area - centered vertically */}
@@ -208,7 +208,7 @@ export const LoginPage = () => {
               </svg>
               <span className="text-5xl font-bold text-white"><span className="font-semibold">eris</span> Commerce Platform</span>
             </div>
-            <p className="text-xl text-teal-100">
+            <p className="text-xl text-blue-100">
               Transform your product data into competitive advantage with our enterprise commerce platform.
             </p>
           </div>
@@ -222,7 +222,7 @@ export const LoginPage = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-white">{feature.title}</h3>
-                  <p className="text-teal-100 text-sm mt-2">{feature.description}</p>
+                  <p className="text-blue-100 text-sm mt-2">{feature.description}</p>
                 </div>
               </div>
             ))}
@@ -238,7 +238,7 @@ export const LoginPage = () => {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-white">{enterpriseFeature.title}</h3>
-                <p className="text-teal-100 text-sm mt-1">{enterpriseFeature.description}</p>
+                <p className="text-blue-100 text-sm mt-1">{enterpriseFeature.description}</p>
               </div>
             </div>
           </div>
@@ -261,7 +261,7 @@ export const LoginPage = () => {
               </div>
               <span className="text-xs text-white">© {new Date().getFullYear()} Averis Commerce Platform</span>
             </div>
-            <p className="text-xs text-teal-100 opacity-90">All rights reserved</p>
+            <p className="text-xs text-blue-100 opacity-90">All rights reserved</p>
           </div>
         </div>
       </div>

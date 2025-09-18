@@ -159,7 +159,7 @@ const ServicesPage = () => {
   }
 
   // Services configuration with health check endpoints
-  // This matches the actual services launched by start.sh script
+  // Updated to match Docker/Traefik architecture and actual running services
   const servicesConfig = [
     // Product MDM Services (Active)
     {
@@ -177,9 +177,9 @@ const ServicesPage = () => {
       name: 'Product API',
       category: 'Product MDM',
       type: 'API',
-      url: 'http://localhost:6001',
-      healthUrl: 'http://localhost:6001/health',
-      description: 'Product Master Data Management API (.NET)',
+      url: 'http://api.localhost/product',
+      healthUrl: 'http://api.localhost/product/health/basic',
+      description: 'Product Master Data Management API (.NET) - Dockerized',
       version: 'v1.0.0'
     },
     
@@ -189,9 +189,9 @@ const ServicesPage = () => {
       name: 'Product Staging API',
       category: 'Product Staging',
       type: 'API',
-      url: 'http://localhost:6002',
-      healthUrl: 'http://localhost:6002/health',
-      description: 'Product staging cache API (.NET)',
+      url: 'http://api.localhost/product-staging',
+      healthUrl: 'http://api.localhost/product-staging/health/basic',
+      description: 'Product staging cache API (.NET) - Dockerized',
       version: 'v1.0.0-beta'
     },
     {
@@ -221,9 +221,9 @@ const ServicesPage = () => {
       name: 'Pricing API',
       category: 'Pricing MDM',
       type: 'API',
-      url: 'http://localhost:6003',
-      healthUrl: 'http://localhost:6003/health',
-      description: 'Pricing Master Data Management API (.NET)',
+      url: 'http://api.localhost/pricing',
+      healthUrl: 'http://api.localhost/pricing/health',
+      description: 'Pricing Master Data Management API (.NET) - Dockerized',
       version: 'v1.0.0'
     },
 
@@ -243,9 +243,9 @@ const ServicesPage = () => {
       name: 'E-commerce API',
       category: 'E-Commerce',
       type: 'API',
-      url: 'http://localhost:6004',
-      healthUrl: 'http://localhost:6004/health',
-      description: 'E-commerce Platform API (.NET)',
+      url: 'http://api.localhost/ecommerce',
+      healthUrl: 'http://api.localhost/ecommerce/health',
+      description: 'E-commerce Platform API (.NET) - Dockerized',
       version: 'v1.0.0'
     },
 
@@ -265,9 +265,9 @@ const ServicesPage = () => {
       name: 'Customer API',
       category: 'Customer MDM',
       type: 'API',
-      url: 'http://localhost:6007',
-      healthUrl: 'http://localhost:6007/health',
-      description: 'User and Customer Management API (.NET)',
+      url: 'http://api.localhost/customer',
+      healthUrl: 'http://api.localhost/customer/health',
+      description: 'User and Customer Management API (.NET) - Dockerized',
       version: 'v1.0.0'
     },
 
@@ -287,9 +287,9 @@ const ServicesPage = () => {
       name: 'OMS API',
       category: 'Order Management',
       type: 'API',
-      url: 'http://localhost:6005',
-      healthUrl: 'http://localhost:6005/health',
-      description: 'Order Management System API (.NET)',
+      url: 'http://api.localhost/oms',
+      healthUrl: 'http://api.localhost/oms/health',
+      description: 'Order Management System API (.NET) - Dockerized',
       version: 'v1.0.0'
     },
 
@@ -309,13 +309,13 @@ const ServicesPage = () => {
       name: 'ERP API',
       category: 'Enterprise Resource Planning',
       type: 'API',
-      url: 'http://localhost:6006',
-      healthUrl: 'http://localhost:6006/health',
-      description: 'Enterprise Resource Planning API (.NET)',
+      url: 'http://api.localhost/erp',
+      healthUrl: 'http://api.localhost/erp/health',
+      description: 'Enterprise Resource Planning API (.NET) - Dockerized',
       version: 'v1.0.0'
     },
 
-    // Dashboard Services (Active)
+    // System Services (Active)
     {
       id: 'commerce-dashboard-ui',
       name: 'Commerce Dashboard UI',
@@ -326,6 +326,16 @@ const ServicesPage = () => {
       description: 'Centralized dashboard for commerce operations',
       version: 'v1.0.0'
     },
+    {
+      id: 'system-api',
+      name: 'System API',
+      category: 'System Monitor',
+      type: 'API',
+      url: 'http://api.localhost/system',
+      healthUrl: 'http://api.localhost/system/health',
+      description: 'System configuration and monitoring API (.NET) - Dockerized',
+      version: 'v1.0.0'
+    },
 
     // Infrastructure Services (External Dependencies)
     {
@@ -333,7 +343,7 @@ const ServicesPage = () => {
       name: 'NATS Message Streaming',
       category: 'Infrastructure',
       type: 'Queue',
-      url: 'nats://localhost:4222',
+      url: 'http://nats.localhost',
       healthUrl: 'http://localhost:8090/health',
       description: 'High-performance message streaming for product events',
       version: 'v2.10.0'
